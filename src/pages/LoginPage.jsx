@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useMutation } from '@apollo/client';
 import { TextField, Button, Typography, Link, IconButton, InputAdornment, Box } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/images/mainLogo.svg';
+import { LOGIN_MUTATION, SIGNUP_MUTATION } from '../graphql/auth/mutations';
 
 const LoginWrapper = styled.div`
   display: flex;
@@ -100,15 +102,42 @@ const LoginPage = () => {
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const [showPassword, setShowPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
-  const { login } = useAuth();
+  const [userLogin] = useMutation(LOGIN_MUTATION, {
+    onCompleted: (data) => {
+      console.log('Login completed:', data);
+      login(data.login);
+    },
+    onError: (error) => {
+      console.error('Error logging in:', error);
+    },
+  });
+ 
   const password = watch('password', '');
   const confirmPassword = watch('confirmPassword', '');
-
-  const onSubmit = (data) => {
-    if (isSignup) {
-      console.log('Cadastro:', data);
-    } else {
-      login(data);
+  const { login } = useAuth();
+  const [signUp] = useMutation(SIGNUP_MUTATION, {
+    onCompleted: (data) => {
+      console.log('Sign Up completed:', data);
+      login(data.signUp);
+    },
+    onError: (error) => {
+      console.error('Error signing up:', error);
+    },
+  });
+  const onSubmit = async (data) => {
+    try {
+      if (isSignup) {
+        console.log(process.env.REACT_APP_GRAPHQL_URI)
+        const response = await signUp({ variables: { input: { email: data.email, password: data.password, preferredName: data.name } } });
+        console.log('Cadastro:', response.data.signUp);
+        setIsSignup(false); // Retorne ao modo de login após o cadastro bem-sucedido
+      } else {
+        const response = await userLogin({ variables: { input: { email: data.email, password: data.password } } });
+        const token = response.data.login.access_token;
+        login({ email: data.email }, token); // Chame o login com userData e token
+      }
+    } catch (error) {
+      console.error('Erro ao fazer login/cadastro:', error);
     }
   };
 
@@ -138,7 +167,7 @@ const LoginPage = () => {
   return (
     <LoginWrapper>
       <LeftPanel>
-      
+        
         <img src={logo} alt="Logo" style={{ width: '150px', marginBottom: '2rem' }} />
         <LoginForm onSubmit={handleSubmit(onSubmit)}>
           {isSignup && (

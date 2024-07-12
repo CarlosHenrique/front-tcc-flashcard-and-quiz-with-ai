@@ -1,9 +1,24 @@
-// src/graphql/client.js
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+
+const httpLink = createHttpLink({
+  uri: process.env.REACT_APP_GRAPHQL_URI, // Certifique-se de adicionar REACT_APP_GRAPHQL_URI ao .env
+});
+
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : "",
+    }
+  };
+});
 
 const client = new ApolloClient({
-  uri: 'https://your-graphql-endpoint.com/graphql',
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
+  credentials: 'include', 
 });
 
 export default client;
