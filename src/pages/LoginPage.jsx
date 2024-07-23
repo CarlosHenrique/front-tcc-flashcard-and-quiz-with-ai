@@ -29,7 +29,7 @@ const RightPanel = styled.div`
   justify-content: center;
   align-items: center;
   width: 50%;
-  background-color: #5650F5; /* Ajuste a cor conforme necessário */
+  background-color: #5650F5;
   color: #fff;
   font-family: 'Rowdies', cursive;
 `;
@@ -105,7 +105,7 @@ const LoginPage = () => {
   const [userLogin] = useMutation(LOGIN_MUTATION, {
     onCompleted: (data) => {
       console.log('Login completed:', data);
-      login(data.login);
+      login(data.login.user, data.login.access_token);
     },
     onError: (error) => {
       console.error('Error logging in:', error);
@@ -118,23 +118,23 @@ const LoginPage = () => {
   const [signUp] = useMutation(SIGNUP_MUTATION, {
     onCompleted: (data) => {
       console.log('Sign Up completed:', data);
-      login(data.signUp);
+      login(data.signUp.user, data.signUp.access_token);
     },
     onError: (error) => {
       console.error('Error signing up:', error);
     },
   });
+
   const onSubmit = async (data) => {
     try {
       if (isSignup) {
-        console.log(process.env.REACT_APP_GRAPHQL_URI)
         const response = await signUp({ variables: { input: { email: data.email, password: data.password, preferredName: data.name } } });
         console.log('Cadastro:', response.data.signUp);
-        setIsSignup(false); // Retorne ao modo de login após o cadastro bem-sucedido
+        setIsSignup(false);
       } else {
         const response = await userLogin({ variables: { input: { email: data.email, password: data.password } } });
         const token = response.data.login.access_token;
-        login({ email: data.email }, token); // Chame o login com userData e token
+        login({ email: data.email }, token);
       }
     } catch (error) {
       console.error('Erro ao fazer login/cadastro:', error);
@@ -167,7 +167,6 @@ const LoginPage = () => {
   return (
     <LoginWrapper>
       <LeftPanel>
-        
         <img src={logo} alt="Logo" style={{ width: '150px', marginBottom: '2rem' }} />
         <LoginForm onSubmit={handleSubmit(onSubmit)}>
           {isSignup && (

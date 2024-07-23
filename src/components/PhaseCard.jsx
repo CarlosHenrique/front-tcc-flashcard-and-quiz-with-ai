@@ -2,8 +2,9 @@ import React from 'react';
 import styled from 'styled-components';
 import { Card, CardContent, Typography, Button, LinearProgress, Box } from '@mui/material';
 import { Lock } from '@mui/icons-material';
-import exampleImage from '../assets/images/card-fase-cinco.webp'; 
+import exampleImage from '../assets/images/card-fase-cinco.webp';
 import { useNavigate } from 'react-router-dom';
+
 const StyledCard = styled(Card)`
   margin: 1rem;
   width: 90%;
@@ -62,45 +63,48 @@ const NeonProgress = styled(LinearProgress)`
 `;
 
 const PhaseCard = ({ phase }) => {
-  
   const navigate = useNavigate();
-  const isQuizUnlocked = phase.completed === 100;
-
+  const isQuizUnlocked = true; // Ajuste conforme necessário
+  const unlocked = true; // Ajuste conforme necessário
+  const completed = 50; // Ajuste conforme necessário
+  const reviewed = 20; // Ajuste conforme necessário
+  
   const handleStartFlashcards = () => {
-    navigate('/flashcards');
+    navigate('/flashcards', { state: { deck: phase } });
   };
 
   const handleStartQuiz = () => {
-    navigate('/quiz');
+    navigate('/quiz', { state: { deck: phase } });
   };
+
   return (
     <StyledCard>
-      <CardImage src={phase.image || exampleImage} />
-      <CardContentWrapper unlocked={phase.unlocked}>
+      <CardImage src={exampleImage} />
+      <CardContentWrapper unlocked={unlocked}>
         <CardContent>
           <Typography variant="h6">{phase.title}</Typography>
           <Typography variant="body2" color="textSecondary">
-            {phase.description}
+            {phase.theme}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            {phase.completed}% completado
+            {completed}% completado
           </Typography>
-          <NeonProgress  variant="determinate" value={phase.completed} />
+          <NeonProgress variant="determinate" value={completed} />
           <Typography variant="body2" color="textSecondary">
-            {phase.reviewed}% Revisado
+            {reviewed}% Revisado
           </Typography>
-          <NeonProgress  variant="determinate" value={phase.reviewed} />
+          <NeonProgress variant="determinate" value={reviewed} />
           <Box display="flex" justifyContent="space-between" mt={2}>
-            <NeonButton  onClick={handleStartFlashcards} variant="contained" color="primary" disabled={!phase.unlocked} style={{ marginRight: '0.5rem' }}>
+            <NeonButton onClick={handleStartFlashcards} variant="contained" color="primary" disabled={!unlocked} style={{ marginRight: '0.5rem' }}>
               Iniciar Flashcards
             </NeonButton>
-            <NeonButton  onClick={handleStartQuiz} variant="contained" color="primary" disabled={!isQuizUnlocked}>
+            <NeonButton onClick={handleStartQuiz} variant="contained" color="primary" disabled={!isQuizUnlocked}>
               Iniciar Quiz
             </NeonButton>
           </Box>
         </CardContent>
       </CardContentWrapper>
-      <LockOverlay unlocked={phase.unlocked}>
+      <LockOverlay unlocked={unlocked}>
         <Lock fontSize="large" />
       </LockOverlay>
     </StyledCard>

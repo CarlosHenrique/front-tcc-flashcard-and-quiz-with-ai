@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Typography, IconButton, Button } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Typography, IconButton, Button, Chip, Dialog, DialogTitle, DialogContent } from '@mui/material';
+import { Refresh as RefreshIcon, ArrowBack, ArrowForward, Info as InfoIcon } from '@mui/icons-material';
 import styled, { css } from 'styled-components';
+import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
-import flashcardData from '../mocks/flashcardData';
 
 const FlashcardsContainer = styled.div`
   display: flex;
@@ -17,7 +17,7 @@ const FlashcardsContainer = styled.div`
 const StyledCard = styled.div`
   width: 90%;
   max-width: 1000px;
-  height: 400px; /* Defina a altura fixa aqui */
+  height: 400px;
   margin: 2rem 0;
   position: relative;
   perspective: 1000px;
@@ -51,7 +51,7 @@ const StyledCard = styled.div`
 const TopSection = styled.div`
   flex: 1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 0.5rem;
 `;
@@ -91,6 +91,18 @@ const CorrectButton = styled(Button)`
   }
 `;
 
+const NavigationButton = styled(Button)`
+  margin: 1rem;
+  background-color: #5650F5 !important;
+`;
+
+const NavigationWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 70%;
+`;
+
 const ProgressDots = styled.div`
   display: flex;
   justify-content: center;
@@ -115,9 +127,12 @@ const ProgressDots = styled.div`
 `;
 
 const FlashcardsPage = () => {
+  const location = useLocation();
+  const { deck } = location.state;
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [progress, setProgress] = useState(flashcardData.cards.map(() => ({ status: 'pending' }))); // pending, correct, incorrect
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [progress, setProgress] = useState(deck.cards.map(() => ({ status: 'pending' })));
 
   const handleFlip = () => setFlipped(!flipped);
 
@@ -125,18 +140,16 @@ const FlashcardsPage = () => {
     const newProgress = [...progress];
     newProgress[currentCardIndex].status = 'correct';
     setProgress(newProgress);
-    handleNext();
   };
 
   const handleMarkIncorrect = () => {
     const newProgress = [...progress];
     newProgress[currentCardIndex].status = 'incorrect';
     setProgress(newProgress);
-    handleNext();
   };
 
   const handleNext = () => {
-    if (currentCardIndex < flashcardData.cards.length - 1) {
+    if (currentCardIndex < deck.cards.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
     }
     setFlipped(false);
@@ -154,7 +167,7 @@ const FlashcardsPage = () => {
     setFlipped(false);
   };
 
-  const currentCard = flashcardData.cards[currentCardIndex];
+  const currentCard = deck.cards[currentCardIndex];
 
   return (
     <FlashcardsContainer>
@@ -163,6 +176,12 @@ const FlashcardsPage = () => {
         <div className="inner-card">
           <div className="front">
             <TopSection>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Chip label={currentCard.difficulty} color="primary" />
+                <IconButton onClick={() => setDialogOpen(true)} style={{ color: 'white' }}>
+                  <InfoIcon />
+                </IconButton>
+              </div>
               <IconButton onClick={handleFlip} style={{ color: 'white' }}>
                 <RefreshIcon />
               </IconButton>
@@ -173,6 +192,12 @@ const FlashcardsPage = () => {
           </div>
           <div className="back">
             <TopSection>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Chip label={currentCard.difficulty} color="primary" />
+                <IconButton onClick={() => setDialogOpen(true)} style={{ color: 'white' }}>
+                  <InfoIcon />
+                </IconButton>
+              </div>
               <IconButton onClick={handleFlip} style={{ color: 'white' }}>
                 <RefreshIcon />
               </IconButton>
@@ -200,6 +225,20 @@ const FlashcardsPage = () => {
           ></div>
         ))}
       </ProgressDots>
+      <NavigationWrapper>
+        <NavigationButton onClick={handlePrev} variant="contained" color="primary" disabled={currentCardIndex === 0}>
+          <ArrowBack />
+        </NavigationButton>
+        <NavigationButton onClick={handleNext} variant="contained" color="primary" disabled={currentCardIndex === deck.cards.length - 1}>
+          <ArrowForward />
+        </NavigationButton>
+      </NavigationWrapper>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>Exemplo Prático</DialogTitle>
+        <DialogContent>
+          <Typography>{currentCard.practiceExample}</Typography>
+        </DialogContent>
+      </Dialog>
     </FlashcardsContainer>
   );
 };

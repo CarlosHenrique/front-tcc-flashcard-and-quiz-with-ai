@@ -3,7 +3,6 @@ import Slider from 'react-slick';
 import { Button } from '@mui/material';
 import styled from 'styled-components';
 import PhaseCard from './PhaseCard';
-import CustomArrow from './CustomArrow';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
@@ -42,16 +41,7 @@ const ButtonWrapper = styled.div`
   height: auto;
 `;
 
-const phases = [
-  { id: 1, title: 'Fase 1', description: 'Descrição da fase 1', unlocked: true, completed: 100, reviewed: 0,  },
-  { id: 2, title: 'Fase 2', description: 'Descrição da fase 2', unlocked: false, completed: 0, reviewed: 0, image: '/path/to/image2.jpg' },
-  { id: 3, title: 'Fase 3', description: 'Descrição da fase 3', unlocked: false, completed: 0, reviewed: 0, image: '/path/to/image3.jpg' },
-  { id: 4, title: 'Fase 4', description: 'Descrição da fase 4', unlocked: false, completed: 0, reviewed: 0, image: '/path/to/image4.jpg' },
-  { id: 5, title: 'Fase 5', description: 'Descrição da fase 5', unlocked: false, completed: 0, reviewed: 0, image: '/path/to/image5.jpg' },
-  // Adicione mais fases conforme necessário
-];
-
-const PhaseCarousel = () => {
+const PhaseCarousel = ({ decks }) => {
   const sliderRef = useRef(null);
 
   const next = () => {
@@ -88,13 +78,13 @@ const PhaseCarousel = () => {
       },
     ],
   };
-
+  
   return (
     <>
       <CarouselWrapper>
         <Slider ref={sliderRef} {...settings}>
-          {phases.map((phase) => (
-            <PhaseCard key={phase.id} phase={phase} />
+          {decks.map((deck) => (
+            <PhaseCard key={deck.id} phase={deck} />
           ))}
         </Slider>
       </CarouselWrapper>

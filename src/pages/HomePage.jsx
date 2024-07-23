@@ -1,8 +1,9 @@
-import React from 'react';
+import {  React } from 'react';
 import styled from 'styled-components';
-import { Typography } from '@mui/material';
+import { Typography, CircularProgress, Box } from '@mui/material';
 import PhaseCarousel from '../components/PhaseCarousel';
 import Header from '../components/Header';
+import { useFlashcards } from '../context/FlashcardsContext';
 
 const HomeWrapper = styled.div`
   padding-left: 2rem;
@@ -23,13 +24,28 @@ const StyledTypography = styled(Typography)`
 `;
 
 const HomePage = () => {
+  const { decks, loading, error } = useFlashcards();
+  console.log('DEC',decks)
+ 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <p>Error: {error.message}</p>;
+  }
+
   return (
     <HomeWrapper>
       <Header />
       <StyledTypography variant="h3" className='app-name'>
         Selecione a fase:
       </StyledTypography>
-      <PhaseCarousel />
+      <PhaseCarousel decks={decks} />
     </HomeWrapper>
   );
 };
