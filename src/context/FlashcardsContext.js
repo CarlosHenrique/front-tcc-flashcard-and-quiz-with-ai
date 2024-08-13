@@ -15,9 +15,13 @@ export const FlashcardsProvider = ({ children }) => {
   const [fetchDecks, { data, error }] = useLazyQuery(GET_ALL_DECKS, { fetchPolicy: 'no-cache',});
 
   useEffect(() => {
-    fetchDecks();
+    const fetchData = async () => {
+      await fetchDecks();
+    };
+  
+    fetchData();
   }, [fetchDecks]);
-
+  
   useEffect(() => {
     if (data) {
       setDecks(data.getAllDecks);

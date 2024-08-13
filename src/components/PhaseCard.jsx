@@ -4,6 +4,7 @@ import { Card, CardContent, Typography, Button, LinearProgress, Box } from '@mui
 import { Lock } from '@mui/icons-material';
 import exampleImage from '../assets/images/card-fase-cinco.webp';
 import { useNavigate } from 'react-router-dom';
+import { useQuiz } from '../context/QuizContext';
 
 const StyledCard = styled(Card)`
   margin: 1rem;
@@ -64,17 +65,19 @@ const NeonProgress = styled(LinearProgress)`
 
 const PhaseCard = ({ phase }) => {
   const navigate = useNavigate();
+  const { loadQuiz, quizData, loading } = useQuiz();
   const isQuizUnlocked = true; // Ajuste conforme necessário
   const unlocked = true; // Ajuste conforme necessário
   const completed = 50; // Ajuste conforme necessário
   const reviewed = 20; // Ajuste conforme necessário
-  
+
   const handleStartFlashcards = () => {
     navigate('/flashcards', { state: { deck: phase } });
   };
 
-  const handleStartQuiz = () => {
-    navigate('/quiz', { state: { deck: phase } });
+  const handleStartQuiz = async () => {
+    await loadQuiz(phase.id);
+    navigate('/quiz', { state: { deck: phase, quiz: quizData } });
   };
 
   return (
@@ -99,7 +102,7 @@ const PhaseCard = ({ phase }) => {
               Iniciar Flashcards
             </NeonButton>
             <NeonButton onClick={handleStartQuiz} variant="contained" color="primary" disabled={!isQuizUnlocked}>
-              Iniciar Quiz
+              {loading ? 'Carregando...' : 'Iniciar Quiz'}
             </NeonButton>
           </Box>
         </CardContent>

@@ -2,7 +2,7 @@ import React from 'react';
 import {  Route, Routes, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import FlashcardsPage from './pages/FlashcardsPage';
-import QuizPage from './pages/QuizPage';
+import QuizPage from './pages/quiz/QuizPage';
 import LoginPage from './pages/LoginPage';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
@@ -10,6 +10,7 @@ import PrivateRoute from './components/PrivateRoute';
 
 import { useAuth } from './context/AuthContext';
 import { FlashcardsProvider } from './context/FlashcardsContext';
+import { QuizProvider } from './context/QuizContext';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -23,7 +24,7 @@ const App = () => {
   }
 
   return (
-    
+    <QuizProvider>
     <FlashcardsProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -65,7 +66,7 @@ const App = () => {
         />
       </Routes>
       </FlashcardsProvider>
-    
+      </QuizProvider>
   );
 };
 
