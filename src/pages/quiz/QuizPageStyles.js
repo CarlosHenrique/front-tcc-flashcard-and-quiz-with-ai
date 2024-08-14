@@ -68,6 +68,9 @@ export const ProgressDots = styled.div`
     &.incorrect {
       background-color: #E41315;
     }
+    &.pending {
+      background-color: #ddd;
+    }
     &.current {
       border: 2px solid #b4bfff;
     }

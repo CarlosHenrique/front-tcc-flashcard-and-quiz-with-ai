@@ -62,18 +62,15 @@ export const QuizProvider = ({ children }) => {
     setQuestionStartTime(currentTime);
   };
 
-  const finalizeQuiz = (userId) => {
-    const quizId = quizData._id;
+  const finalizeQuiz = (userId, quizId) => {
     const selectedQuestionIds = responses.map((resp) => resp.questionId);
     const score = responses.filter(resp => resp.response.isCorrect).length;
     const totalQuizTime = (new Date() - quizStartTime) / 1000; // Tempo total em segundos
     const date = new Date();
-
     const questionMetrics = responses.map((resp, index) => ({
       questionId: resp.questionId,
       attempts: 1, // Supondo 1 tentativa por questão
       correct: resp.response.isCorrect,
-      lastAttemptDate: date,
       timeSpent: questionTimes[index],
     }));
 
@@ -93,12 +90,23 @@ export const QuizProvider = ({ children }) => {
     return userQuizResponse;
   };
 
+  const resetQuizContext = () => {
+    setQuizData(null);
+    setResponses([]);
+    setLoading(false);
+    setError(null);
+    setQuizStartTime(null);
+    setQuestionStartTime(null);
+    setQuestionTimes([]);
+  };
+
   return (
     <QuizContext.Provider
       value={{
         quizData,
         loadQuiz,
         responses,
+        resetQuizContext,
         saveResponse,
         finalizeQuiz,
         loading,
