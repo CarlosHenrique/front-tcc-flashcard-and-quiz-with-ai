@@ -6,6 +6,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/images/mainLogo.svg';
+import { useNavigate } from 'react-router-dom';
 import { LOGIN_MUTATION, SIGNUP_MUTATION } from '../graphql/auth/mutations';
 
 const LoginWrapper = styled.div`
@@ -102,6 +103,7 @@ const LoginPage = () => {
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const [showPassword, setShowPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
+  const navigate = useNavigate();
   const [userLogin] = useMutation(LOGIN_MUTATION, {
     onCompleted: (data) => {
       console.log('Login completed:', data);
@@ -134,12 +136,19 @@ const LoginPage = () => {
       } else {
         const response = await userLogin({ variables: { input: { email: data.email, password: data.password } } });
         const token = response.data.login.access_token;
-        login({ email: data.email }, token);
-      }
+  
+        // Armazenando o token antes de chamar a função login
+        localStorage.setItem('authToken', token);
+        if (token) {
+          login({ email: data.email }, token);
+          navigate('/'); // Redirecionar apenas após o login bem-sucedido
+        }
+      } 
     } catch (error) {
       console.error('Erro ao fazer login/cadastro:', error);
     }
   };
+  
 
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);

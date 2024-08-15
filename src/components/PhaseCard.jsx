@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useLazyQuery } from '@apollo/client';
+import { GET_LAST_USER_QUIZ_RESPONSE } from '../graphql/quiz/queries';
 import { Card, CardContent, Typography, Button, LinearProgress, Box } from '@mui/material';
 import { Lock } from '@mui/icons-material';
 import exampleImage from '../assets/images/card-fase-cinco.webp';
@@ -66,10 +68,36 @@ const NeonProgress = styled(LinearProgress)`
 const PhaseCard = ({ phase }) => {
   const navigate = useNavigate();
   const { loadQuiz, quizData, loading } = useQuiz();
+  const [reviewed, setReviewed] = useState(0);
+  const [getLastQuizResponse] = useLazyQuery(GET_LAST_USER_QUIZ_RESPONSE);
+
+  useEffect(() => {
+    const fetchLastQuizResponse = async () => {
+      const userId = "carlos"; // Substitua pelo ID do usuário real
+      const quizId = phase.id;
+
+      try {
+        const { data } = await getLastQuizResponse({ variables: { userId, quizId } });
+        if (data && data.getLastUserQuizResponse) {
+          const score = data.getLastUserQuizResponse.score;
+          const totalQuestions = phase.questions ? phase.questions.length : 10; // Ajuste conforme necessário
+          const reviewedPercentage = Math.round((score / totalQuestions) * 100);
+          setReviewed(reviewedPercentage);
+        } else {
+          setReviewed(0); // Define como 0% se não houver resposta anterior
+        }
+      } catch (error) {
+        console.error("Erro ao buscar a última resposta do quiz:", error);
+        setReviewed(0);
+      }
+    };
+
+    fetchLastQuizResponse();
+  }, [getLastQuizResponse, phase]);
+
   const isQuizUnlocked = true; // Ajuste conforme necessário
   const unlocked = true; // Ajuste conforme necessário
   const completed = 50; // Ajuste conforme necessário
-  const reviewed = 20; // Ajuste conforme necessário
 
   const handleStartFlashcards = () => {
     navigate('/flashcards', { state: { deck: phase } });

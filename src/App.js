@@ -1,5 +1,5 @@
 import React from 'react';
-import {  Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import FlashcardsPage from './pages/FlashcardsPage';
 import QuizPage from './pages/quiz/QuizPage';
@@ -9,8 +9,6 @@ import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
 
 import { useAuth } from './context/AuthContext';
-import { FlashcardsProvider } from './context/FlashcardsContext';
-import { QuizProvider } from './context/QuizContext';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -24,49 +22,45 @@ const App = () => {
   }
 
   return (
-    <QuizProvider>
-    <FlashcardsProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            user ? (
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/flashcards"
-          element={
-            user ? (
-              <PrivateRoute>
-                <FlashcardsPage />
-              </PrivateRoute>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-        <Route
-          path="/quiz"
-          element={
-            user ? (
-              <PrivateRoute>
-                <QuizPage />
-              </PrivateRoute>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-      </Routes>
-      </FlashcardsProvider>
-      </QuizProvider>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          user ? (
+            <PrivateRoute>
+              <HomePage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/flashcards"
+        element={
+          user ? (
+            <PrivateRoute>
+              <FlashcardsPage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/quiz"
+        element={
+          user ? (
+            <PrivateRoute>
+              <QuizPage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+    </Routes>
   );
 };
 

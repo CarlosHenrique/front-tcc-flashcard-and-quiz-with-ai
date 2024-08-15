@@ -20,3 +20,12 @@ export const GET_QUIZ_BY_DECK_ASSOCIATED_ID = gql`
     }
   }
 `;
+
+export const GET_LAST_USER_QUIZ_RESPONSE = gql`
+  query getLastUserQuizResponse($userId: String!, $quizId: String!) {
+    getLastUserQuizResponse(userId: $userId, quizId: $quizId) {
+      __typename
+      score
+    }
+  }
+`;

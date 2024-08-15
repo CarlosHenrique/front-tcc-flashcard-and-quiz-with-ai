@@ -1,4 +1,4 @@
-import {  React } from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { Typography, CircularProgress, Box } from '@mui/material';
 import PhaseCarousel from '../components/PhaseCarousel';
@@ -25,8 +25,21 @@ const StyledTypography = styled(Typography)`
 
 const HomePage = () => {
   const { decks, loading, error } = useFlashcards();
-  console.log('DEC',decks)
- 
+
+  useEffect(() => {
+    if (loading) {
+      console.log('Aguarde, carregando...');
+    } else if (decks && decks.length > 0) {
+      console.log('Dados recebidos:', decks);
+    } else if (!loading && decks.length === 0) {
+      console.log('Nenhum dado recebido.');
+    }
+  
+    if (error) {
+      console.error('Erro ao carregar os dados:', error);
+    }
+  }, [decks, loading, error]);
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -37,6 +50,10 @@ const HomePage = () => {
 
   if (error) {
     return <p>Error: {error.message}</p>;
+  }
+
+  if (decks.length === 0) {
+    return <p>Nenhum deck disponível.</p>;
   }
 
   return (
