@@ -36,7 +36,7 @@ export const FlashcardsProvider = ({ children }) => {
 
   useEffect(() => {
     if (data) {
-      console.log('Data recebido do backend:', data);
+      
       setDecks(data.getAllDecksFromUser);
     }
   }, [data]);
@@ -106,7 +106,7 @@ export const FlashcardsProvider = ({ children }) => {
       [deckId]: response,
     }));
 
-    console.log("Métricas atualizadas:", response);
+   
   };
 
   /**
@@ -137,7 +137,6 @@ export const FlashcardsProvider = ({ children }) => {
 
     const formattedResponses = mapUserDeckResponses();
 
-    console.log("Dados formatados:", formattedResponses);
 
     try {
       const { data } = await saveDeckResponse({
@@ -148,7 +147,7 @@ export const FlashcardsProvider = ({ children }) => {
         throw new Error('Erro ao enviar respostas via GraphQL');
       }
 
-      console.log('Respostas enviadas com sucesso via GraphQL:', data);
+      console.log('Respostas enviadas com sucesso via GraphQL');
     } catch (error) {
       console.error('Erro ao enviar respostas:', error);
     }

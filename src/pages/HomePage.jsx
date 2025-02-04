@@ -81,8 +81,6 @@ const HomePage = () => {
     return <p>Nenhum deck disponível.</p>;
   }
 
-  console.log('QUIZZES: ', allQuizzes);
-  console.log('DECKS: ', decks);
 
   return (
     <HomeWrapper>
