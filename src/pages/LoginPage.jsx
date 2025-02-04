@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@apollo/client';
-import { TextField, Button, Typography, Link, IconButton, InputAdornment, Box } from '@mui/material';
+import { TextField, Button, Typography, Link, IconButton, InputAdornment, Box, Alert } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/images/mainLogo.svg';
+import { useNavigate } from 'react-router-dom';
 import { LOGIN_MUTATION, SIGNUP_MUTATION } from '../graphql/auth/mutations';
 
 const LoginWrapper = styled.div`
@@ -29,7 +30,7 @@ const RightPanel = styled.div`
   justify-content: center;
   align-items: center;
   width: 50%;
-  background-color: #5650F5; /* Ajuste a cor conforme necessário */
+  background-color: #5650F5;
   color: #fff;
   font-family: 'Rowdies', cursive;
 `;
@@ -52,14 +53,6 @@ const StyledTextField = styled(TextField)`
   }
 `;
 
-const ActionsContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-top: 1rem;
-`;
-
 const ButtonsWrapper = styled.div`
   display: flex;
   justify-content: space-between;
@@ -80,95 +73,70 @@ const SignupButton = styled(Button)`
   border: 1px solid #5650F5 !important;
 `;
 
-const PasswordChecklist = styled(Box)`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-top: 0.2rem;
-  width: 100%;
-  font-size: 0.6rem;
-`;
-
-const ChecklistItem = styled.div`
-  display: flex;
-  align-items: center;
-  align-self: flex-start;
-  font-size: 0.6rem;
-  color: ${props => (props.valid ? 'green' : 'red')};
-  margin-bottom: 0.2rem;
-`;
-
 const LoginPage = () => {
-  const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
   const [showPassword, setShowPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [userLogin] = useMutation(LOGIN_MUTATION, {
     onCompleted: (data) => {
-      console.log('Login completed:', data);
-      login(data.login);
+      if (data?.login?.access_token && data?.login?.email) {
+        login(
+          { email: data.login.email }, // 🔹 Agora passando os dados corretamente
+          data.login.access_token
+        );
+      } else {
+        console.error('❌ Resposta inesperada do servidor:', data);
+        setErrorMessage('Erro ao processar login.');
+      }
     },
-    onError: (error) => {
-      console.error('Error logging in:', error);
-    },
+    
   });
- 
-  const password = watch('password', '');
-  const confirmPassword = watch('confirmPassword', '');
-  const { login } = useAuth();
+  
+  
   const [signUp] = useMutation(SIGNUP_MUTATION, {
     onCompleted: (data) => {
-      console.log('Sign Up completed:', data);
-      login(data.signUp);
+      login(data.signUp.user, data.signUp.access_token);
+      navigate('/');
     },
     onError: (error) => {
-      console.error('Error signing up:', error);
+      console.error('Erro ao cadastrar:', error);
+      setErrorMessage('Erro ao cadastrar. Verifique os dados e tente novamente.');
     },
   });
+
   const onSubmit = async (data) => {
+    setErrorMessage(null); // Resetar erro antes da tentativa
     try {
       if (isSignup) {
-        console.log(process.env.REACT_APP_GRAPHQL_URI)
-        const response = await signUp({ variables: { input: { email: data.email, password: data.password, preferredName: data.name } } });
-        console.log('Cadastro:', response.data.signUp);
-        setIsSignup(false); // Retorne ao modo de login após o cadastro bem-sucedido
+        await signUp({
+          variables: { input: { email: data.email, password: data.password, preferredName: data.name } },
+        });
       } else {
-        const response = await userLogin({ variables: { input: { email: data.email, password: data.password } } });
-        const token = response.data.login.access_token;
-        login({ email: data.email }, token); // Chame o login com userData e token
+        await userLogin({
+          variables: { input: { email: data.email, password: data.password } },
+        });
       }
     } catch (error) {
-      console.error('Erro ao fazer login/cadastro:', error);
+      console.error('Erro ao processar requisição:', error);
     }
   };
-
-  const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
-  };
-
-  const handleToggleSignup = () => {
-    setIsSignup(!isSignup);
-  };
-
-  const isPasswordValid = (password) => {
-    return {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      number: /\d/.test(password),
-      specialChar: /[!@#$%^&*]/.test(password),
-    };
-  };
-
-  const passwordValidity = isPasswordValid(password);
 
   return (
     <LoginWrapper>
       <LeftPanel>
-        
         <img src={logo} alt="Logo" style={{ width: '150px', marginBottom: '2rem' }} />
+
+        {/* Alerta de erro */}
+        {errorMessage && (
+          <Alert severity="error" onClose={() => setErrorMessage(null)} style={{ width: '100%', maxWidth: '400px', marginBottom: '1rem' }}>
+            {errorMessage}
+          </Alert>
+        )}
+
         <LoginForm onSubmit={handleSubmit(onSubmit)}>
           {isSignup && (
             <StyledTextField
@@ -176,11 +144,9 @@ const LoginPage = () => {
               variant="outlined"
               placeholder="Digite seu nome"
               fullWidth
-              {...register('name', {
-                required: 'Nome é obrigatório',
-              })}
+              {...register('name', { required: 'Nome é obrigatório' })}
               error={!!errors.name}
-              helperText={errors.name ? errors.name.message : ''}
+              helperText={errors.name?.message}
             />
           )}
           <StyledTextField
@@ -196,7 +162,7 @@ const LoginPage = () => {
               }
             })}
             error={!!errors.email}
-            helperText={errors.email ? errors.email.message : ''}
+            helperText={errors.email?.message}
           />
           <StyledTextField
             label="Senha"
@@ -206,78 +172,26 @@ const LoginPage = () => {
             fullWidth
             {...register('password', {
               required: 'Senha é obrigatória',
-              pattern: {
-                value: /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
-                message: 'A senha deve ter no mínimo 8 caracteres, incluindo letras maiúsculas, números e caracteres especiais',
-              }
+              minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres' },
             })}
             error={!!errors.password}
-            helperText={errors.password ? errors.password.message : ''}
+            helperText={errors.password?.message}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
               ),
             }}
           />
-          {isSignup && (
-            <>
-              <StyledTextField
-                label="Confirmar Senha"
-                variant="outlined"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Confirme sua senha"
-                fullWidth
-                {...register('confirmPassword', {
-                  required: 'Confirmação de senha é obrigatória',
-                  validate: (value) => value === password || 'As senhas não correspondem',
-                })}
-                error={!!errors.confirmPassword}
-                helperText={errors.confirmPassword ? errors.confirmPassword.message : ''}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleClickShowPassword}
-                        onMouseDown={handleMouseDownPassword}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <PasswordChecklist>
-                <ChecklistItem valid={passwordValidity.length}>{passwordValidity.length ? 'Mínimo de 8 caracteres' : '* Mínimo de 8 caracteres'}</ChecklistItem>
-                <ChecklistItem valid={passwordValidity.uppercase}>{passwordValidity.uppercase ? 'Uma letra maiúscula' : '* Uma letra maiúscula'}</ChecklistItem>
-                <ChecklistItem valid={passwordValidity.number}>{passwordValidity.number ? 'Um número' : '* Um número'}</ChecklistItem>
-                <ChecklistItem valid={passwordValidity.specialChar}>{passwordValidity.specialChar ? 'Um caractere especial' : '* Um caractere especial'}</ChecklistItem>
-                <ChecklistItem valid={confirmPassword === password}>{confirmPassword === password ? 'Senhas coincidem' : '* Senhas coincidem'}</ChecklistItem>
-              </PasswordChecklist>
-            </>
-          )}
-          {!isSignup && (
-            <ActionsContainer>
-              <Link href="#" variant="body2">
-                Recuperar senha
-              </Link>
-            </ActionsContainer>
-          )}
+
           <ButtonsWrapper>
-            <LoginButton variant="contained" color="primary" type="submit">
+            <LoginButton variant="contained" type="submit">
               {isSignup ? 'Cadastrar' : 'Entrar'}
             </LoginButton>
-            <SignupButton variant="contained" onClick={handleToggleSignup}>
+            <SignupButton variant="contained" onClick={() => setIsSignup(!isSignup)}>
               {isSignup ? 'Voltar' : 'Inscrever-se'}
             </SignupButton>
           </ButtonsWrapper>

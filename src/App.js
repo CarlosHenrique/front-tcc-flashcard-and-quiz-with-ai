@@ -1,47 +1,79 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import FlashcardsPage from './pages/FlashcardsPage';
-import QuizPage from './pages/QuizPage';
+import QuizPage from './pages/quiz/QuizPage';
 import LoginPage from './pages/LoginPage';
-import { AuthProvider } from './context/AuthContext';
+import BadgePage from './pages/ProfilePage';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
-import GlobalStyle from './styles/GlobalStyle';
+
+import { useAuth } from './context/AuthContext';
 
 const App = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Router>
-      <AuthProvider>
-        <GlobalStyle />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/flashcards"
-            element={
-              <PrivateRoute>
-                <FlashcardsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/quiz"
-            element={
-              <PrivateRoute>
-                <QuizPage />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </AuthProvider>
-    </Router>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          user ? (
+            <PrivateRoute>
+              <HomePage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/flashcards"
+        element={
+          user ? (
+            <PrivateRoute>
+              <FlashcardsPage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          user ? (
+            <PrivateRoute>
+              <BadgePage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/quiz"
+        element={
+          user ? (
+            <PrivateRoute>
+              <QuizPage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+    </Routes>
   );
 };
 

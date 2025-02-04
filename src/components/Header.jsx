@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Typography, IconButton } from '@mui/material';
+import { Typography, IconButton, Menu, MenuItem, Modal, Box, Button } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
+import '@fontsource/rowdies'; // Importa a fonte Rowdies
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -24,27 +26,104 @@ const HeaderWrapper = styled.header`
 const ProfileIcon = styled(AccountCircle)`
   && {
     font-size: 3rem;
-    margin-right: 1rem;
+    margin-right: 2rem;
     color: #fff;
   }
 `;
 
-const Header = () => {
+const Logo = styled(Typography)`
+  && {
+    cursor: pointer;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: white;
+    font-family: 'Rowdies', cursive !important;
+  }
+`;
 
+const StyledMenuItem = styled(MenuItem)`
+  && {
+    font-family: 'Rowdies', cursive !important;
+    color: #5650F5 !important;
+  }
+`;
+
+const ModalBox = styled(Box)`
+  width: 300px;
+  background: white;
+  padding: 2rem;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+`;
+
+const Header = () => {
   const navigate = useNavigate();
-  
+  const { logout } = useAuth();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleNavigateToHome = () => {
     navigate('/');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
+  const handleLogoutClick = () => {
+    handleMenuClose();
+    setOpenModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setOpenModal(false);
+    logout();
   };
 
   return (
     <HeaderWrapper>
-      <Typography variant="h4" className="app-name">
+      <Logo variant="h4" onClick={handleNavigateToHome}>
         FlashQuiz
-      </Typography>
-      <IconButton onClick={handleNavigateToHome}>
+      </Logo>
+
+      <IconButton onClick={handleMenuOpen}>
         <ProfileIcon />
       </IconButton>
+
+      {/* Menu suspenso */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <StyledMenuItem onClick={() => navigate('/profile')}>Minhas Badges</StyledMenuItem>
+        <StyledMenuItem onClick={handleLogoutClick}>Logout</StyledMenuItem>
+      </Menu>
+
+      {/* Modal de Confirmação */}
+      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+        <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+          <ModalBox>
+            <Typography variant="h6" mb={2}>Deseja realmente sair?</Typography>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#5650F5",
+                "&:hover": { backgroundColor: "#4038d9" }
+              }}
+              onClick={handleConfirmLogout}
+              style={{ marginRight: '10px' }}
+            >
+              Sim
+            </Button>
+            <Button variant="outlined" onClick={() => setOpenModal(false)}>Cancelar</Button>
+          </ModalBox>
+        </Box>
+      </Modal>
     </HeaderWrapper>
   );
 };
