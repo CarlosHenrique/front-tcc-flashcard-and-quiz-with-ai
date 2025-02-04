@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       if (data?.verifyToken) {
-        console.log('🔹 Token verificado com sucesso:', data.verifyToken);
         setUser(data.verifyToken);
         setUserId(data.verifyToken.id);
         setToken(localStorage.getItem('token'));
@@ -48,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
 
   const login = (userData, authToken, userIdentifier, redirectTo = '/') => {
-    console.log('✅ Login bem-sucedido:', userData);
+    console.log('✅ Login bem-sucedido');
     setUser(userData);
     setToken(authToken);
     setUserId(userIdentifier);
@@ -56,7 +55,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userId', userIdentifier);
     
     setTimeout(() => {
-      console.log('🔄 Tentando redirecionar para:', redirectTo);
       navigate(redirectTo); // Verifica se o navigate realmente está sendo chamado
     }, 100);
   };
