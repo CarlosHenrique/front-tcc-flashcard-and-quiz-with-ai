@@ -8,7 +8,6 @@ import BadgePage from './pages/ProfilePage';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
-
 import { useAuth } from './context/AuthContext';
 
 const App = () => {
@@ -25,53 +24,25 @@ const App = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
       <Route
         path="/"
-        element={
-          user ? (
-            <PrivateRoute>
-              <HomePage />
-            </PrivateRoute>
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
+        element={user ? <PrivateRoute><HomePage /></PrivateRoute> : <Navigate to="/login" />}
       />
+
       <Route
-        path="/flashcards"
-        element={
-          user ? (
-            <PrivateRoute>
-              <FlashcardsPage />
-            </PrivateRoute>
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
+        path="/flashcards/:deckId"
+        element={user ? <PrivateRoute><FlashcardsPage /></PrivateRoute> : <Navigate to="/login" />}
       />
+
       <Route
         path="/profile"
-        element={
-          user ? (
-            <PrivateRoute>
-              <BadgePage />
-            </PrivateRoute>
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
+        element={user ? <PrivateRoute><BadgePage /></PrivateRoute> : <Navigate to="/login" />}
       />
+
       <Route
-        path="/quiz"
-        element={
-          user ? (
-            <PrivateRoute>
-              <QuizPage />
-            </PrivateRoute>
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
+        path="/quiz/:deckId/:quizId"
+        element={user ? <PrivateRoute><QuizPage /></PrivateRoute> : <Navigate to="/login" />}
       />
     </Routes>
   );
