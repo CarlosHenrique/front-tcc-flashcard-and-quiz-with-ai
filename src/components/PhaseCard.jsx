@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Card, CardContent, Typography, Button, LinearProgress, Box, Tooltip } from '@mui/material';
-import { Lock, CheckCircle, ErrorOutline, Cancel } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import ReactPlayer from 'react-player';
+import { Card, CardContent, Typography, Button, Box, Tooltip, Modal, IconButton } from '@mui/material';
+import { Lock, CheckCircle, ErrorOutline, Cancel, PlayCircleOutline, Close } from '@mui/icons-material';
 import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
 
@@ -46,72 +46,72 @@ const LockOverlay = styled.div`
   visibility: ${({ unlocked }) => (unlocked ? 'hidden' : 'visible')};
   text-align: center;
 `;
-const ScoreRow = styled(Box)`
+
+const ButtonContainer = styled(Box)`
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
-  margin: 0.5rem 0;
-`;
-
-const ScoreText = styled(Typography)`
-  && {
-    font-weight: bold;
-    font-size: 1rem;
-    color: #333;
-  }
-`;
-
-const SubText = styled(Typography)`
-  && {
-    font-size: 0.8rem;
-    color: #777;
-  }
-`;
-
-const LockMessage = styled(Typography)`
-  font-size: 1rem;
-  color: #ff0000;
-  font-weight: bold;
-  margin-top: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
 `;
 
 const NeonButton = styled(Button)`
   && {
     background-color: #5650F5;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    height: 45px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    transition: 0.2s;
+    
     &:hover {
       background-color: #4840e6;
     }
   }
 `;
 
+const VideoModal = styled(Modal)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalContent = styled(Box)`
+  background: white;
+  width: 80%;
+  height: 70%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  position: relative;
+  padding: 1rem;
+`;
+
+const CloseButton = styled(IconButton)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+`;
 
 const PhaseCard = ({ deck, quiz }) => {
-  const navigate = useNavigate();
   const { loadQuiz, quizData, loading } = useQuiz();
   const { resetSession } = useFlashcards();
+  const [openModal, setOpenModal] = useState(false);
 
   const unlocked = !deck.isLocked && !quiz.isLocked;
   const isQuizUnlocked = quiz.score >= 70 || deck.score >= 70;
 
   const handleStartFlashcards = () => {
     resetSession();
-    navigate('/flashcards', { state: { deck } });
-  };
-  const getLastAttemptText = (lastAccessed) => {
-    if (!lastAccessed) return 'Nenhuma tentativa registrada';
-
-    const lastAttemptDate = new Date(lastAccessed);
-    const now = new Date();
-    const diffDays = Math.floor((now - lastAttemptDate) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Hoje';
-    if (diffDays === 1) return 'Ontem';
-    return `${diffDays} dias atrás`;
   };
 
   const handleStartQuiz = async () => {
     await loadQuiz(deck.id);
-    navigate('/quiz', { state: { deck, quiz: quizData } });
   };
 
   return (
@@ -120,50 +120,57 @@ const PhaseCard = ({ deck, quiz }) => {
       <CardContentWrapper unlocked={unlocked}>
         <CardContent>
           <Typography variant="h6">{deck.title}</Typography>
-          <ScoreRow>
-          <ScoreText>📚 Flashcards:</ScoreText>
-          <Typography variant="subtitle1" fontWeight="bold">{deck.score} pontos</Typography>
-          {deck.score >= 70 ? (
-            <CheckCircle color="success" />
-          ) : deck.score >= 50 ? (
-            <ErrorOutline color="warning" />
-          ) : (
-            <Cancel color="error" />
-          )}
-        </ScoreRow>
-        <SubText>Última tentativa: {getLastAttemptText(deck.lastAccessed)}</SubText>
 
-        <ScoreRow>
-          <ScoreText>📝 Quiz:</ScoreText>
-          <Typography variant="subtitle1" fontWeight="bold">{quiz.score} pontos</Typography>
-          {quiz.score >= 70 ? (
-            <CheckCircle color="success" />
-          ) : quiz.score >= 50 ? (
-            <ErrorOutline color="warning" />
-          ) : (
-            <Cancel color="error" />
-          )}
-        </ScoreRow>
-        <SubText>Última tentativa: {getLastAttemptText(quiz.lastAccessed)}</SubText>
-
-          <Box display="flex" justifyContent="space-between" mt={2}>
+          <ButtonContainer>
+            <NeonButton onClick={() => setOpenModal(true)} variant="contained" disabled={!unlocked} startIcon={<PlayCircleOutline />}>
+              Assistir Vídeo
+            </NeonButton>
             <NeonButton onClick={handleStartFlashcards} variant="contained" disabled={!unlocked}>
               Iniciar Flashcards
             </NeonButton>
             <Tooltip title={!isQuizUnlocked ? 'Você precisa completar os flashcards primeiro' : ''} disableHoverListener={isQuizUnlocked}>
               <span>
-                <NeonButton onClick={handleStartQuiz} variant="contained" disabled={!isQuizUnlocked}>
+                <NeonButton 
+                  onClick={handleStartQuiz} 
+                  variant="contained" 
+                  disabled={!isQuizUnlocked} 
+                  style={{
+                    opacity: isQuizUnlocked ? 1 : 0.8,
+                    cursor: isQuizUnlocked ? 'pointer' : 'not-allowed'
+                  }}
+                >
                   {loading ? 'Carregando...' : 'Iniciar Quiz'}
                 </NeonButton>
               </span>
             </Tooltip>
-          </Box>
+          </ButtonContainer>
         </CardContent>
       </CardContentWrapper>
+
       <LockOverlay unlocked={unlocked}>
         <Lock fontSize="large" />
-        <LockMessage>Fase Bloqueada</LockMessage>
+        <Typography variant="body1" color="error" fontWeight="bold">
+          Fase Bloqueada
+        </Typography>
       </LockOverlay>
+
+      {/* Modal com ReactPlayer para exibir o vídeo */}
+      <VideoModal open={openModal} onClose={() => setOpenModal(false)}>
+        <ModalContent>
+          <CloseButton onClick={() => setOpenModal(false)}>
+            <Close />
+          </CloseButton>
+          <Typography variant="h5" style={{ marginBottom: '1rem' }}>
+            {deck.title} - Fase de estratégia
+          </Typography>
+          <ReactPlayer
+            url={deck.videoUrl}
+            width="100%"
+            height="80%"
+            controls
+          />
+        </ModalContent>
+      </VideoModal>
     </StyledCard>
   );
 };

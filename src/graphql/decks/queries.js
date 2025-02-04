@@ -7,6 +7,7 @@ export const GET_ALL_DECKS = gql`
     ownerId
     title
     imageUrl
+    videoUrl
     theme
     cards{
       id
