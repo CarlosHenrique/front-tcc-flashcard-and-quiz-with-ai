@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import ReactPlayer from 'react-player';
 import { Card, CardContent, Typography, Button, Box, Tooltip, Modal, IconButton } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Lock, CheckCircle, ErrorOutline, Cancel, PlayCircleOutline, Close } from '@mui/icons-material';
 import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
@@ -99,6 +100,7 @@ const CloseButton = styled(IconButton)`
 `;
 
 const PhaseCard = ({ deck, quiz }) => {
+  const navigate = useNavigate();
   const { loadQuiz, quizData, loading } = useQuiz();
   const { resetSession } = useFlashcards();
   const [openModal, setOpenModal] = useState(false);
@@ -107,11 +109,12 @@ const PhaseCard = ({ deck, quiz }) => {
   const isQuizUnlocked = quiz.score >= 70 || deck.score >= 70;
 
   const handleStartFlashcards = () => {
-    resetSession();
+    navigate(`/flashcards/${deck.id}`, { state: { deck } });
   };
 
   const handleStartQuiz = async () => {
     await loadQuiz(deck.id);
+    navigate(`/quiz/${deck.id}/${quiz.id}`, { state: { deck, quiz } });
   };
 
   return (
