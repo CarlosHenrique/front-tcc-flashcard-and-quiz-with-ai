@@ -7,23 +7,27 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
   const [verifyToken] = useLazyQuery(VERIFY_TOKEN, {
-    context: {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-      },
-    },
+    fetchPolicy: 'network-only',
     onCompleted: (data) => {
-      if (data && data.verifyToken) {
+      if (data?.verifyToken) {
+        console.log('🔹 Token verificado com sucesso:', data.verifyToken);
         setUser(data.verifyToken);
+        setUserId(data.verifyToken.id);
+        setToken(localStorage.getItem('token'));
+        localStorage.setItem('userId', data.verifyToken.id);
       } else {
         logout();
       }
       setLoading(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('⛔ Erro na verificação do token:', error);
       logout();
       setLoading(false);
     },
@@ -31,8 +35,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkToken = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
         await verifyToken();
       } else {
         setLoading(false);
@@ -42,20 +46,37 @@ export const AuthProvider = ({ children }) => {
     checkToken();
   }, [verifyToken, navigate]);
 
-  const login = (userData, token) => {
-    setUser(userData);
-    localStorage.setItem('token', token);
-    navigate('/');
-  };
 
+  const login = (userData, authToken, userIdentifier, redirectTo = '/') => {
+    console.log('✅ Login bem-sucedido:', userData);
+    setUser(userData);
+    setToken(authToken);
+    setUserId(userIdentifier);
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('userId', userIdentifier);
+    
+    setTimeout(() => {
+      console.log('🔄 Tentando redirecionar para:', redirectTo);
+      navigate(redirectTo); // Verifica se o navigate realmente está sendo chamado
+    }, 100);
+  };
+  
+  
   const logout = () => {
+    console.log('🚪 Realizando logout...');
     setUser(null);
+    setToken(null);
+    setUserId(null);
     localStorage.removeItem('token');
-    navigate('/login');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    setTimeout(() => {
+      navigate('/login'); // 🔄 Redireciona para login após limpar o estado
+    }, 100);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, userId, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -63,4 +84,4 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   return useContext(AuthContext);
-};
+}

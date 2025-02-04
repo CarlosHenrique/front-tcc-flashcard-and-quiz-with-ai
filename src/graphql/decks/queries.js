@@ -1,19 +1,24 @@
 import { gql } from '@apollo/client';
 
 export const GET_ALL_DECKS = gql`
-  query getAllDecks {
-    getAllDecks {
+  query GetAllDecksFromUser($id: String!){
+  getAllDecksFromUser(id: $id){
+    id
+    ownerId
+    title
+    imageUrl
+    theme
+    cards{
       id
-      title
-      theme
-      cards {
-        id
-        question
-        answer
-        practiceExample
-        category
-        difficulty
-      }
+      question
+      answer
+      practiceExample
+      category
+      difficulty
     }
+    score
+    isLocked
+    lastAccessed
   }
+}
 `;

@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { useLazyQuery } from '@apollo/client';
-import { GET_LAST_USER_QUIZ_RESPONSE } from '../graphql/quiz/queries';
-import { Card, CardContent, Typography, Button, LinearProgress, Box } from '@mui/material';
-import { Lock } from '@mui/icons-material';
-import exampleImage from '../assets/images/card-fase-cinco.webp';
+import { Card, CardContent, Typography, Button, LinearProgress, Box, Tooltip } from '@mui/material';
+import { Lock, CheckCircle, ErrorOutline, Cancel } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useQuiz } from '../context/QuizContext';
+import { useFlashcards } from '../context/FlashcardsContext';
 
 const StyledCard = styled(Card)`
   margin: 1rem;
@@ -17,7 +15,6 @@ const StyledCard = styled(Card)`
   border-radius: 2rem !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s;
-
   &:hover {
     transform: scale(1.05);
   }
@@ -27,6 +24,7 @@ const CardImage = styled.div`
   height: 150px;
   background: url(${({ src }) => src}) no-repeat center center;
   background-size: cover;
+  filter: ${({ unlocked }) => (unlocked ? 'none' : 'blur(5px)')};
 `;
 
 const CardContentWrapper = styled(Box)`
@@ -41,10 +39,40 @@ const LockOverlay = styled.div`
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.171);
   visibility: ${({ unlocked }) => (unlocked ? 'hidden' : 'visible')};
+  text-align: center;
+`;
+const ScoreRow = styled(Box)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+`;
+
+const ScoreText = styled(Typography)`
+  && {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #333;
+  }
+`;
+
+const SubText = styled(Typography)`
+  && {
+    font-size: 0.8rem;
+    color: #777;
+  }
+`;
+
+const LockMessage = styled(Typography)`
+  font-size: 1rem;
+  color: #ff0000;
+  font-weight: bold;
+  margin-top: 0.5rem;
 `;
 
 const NeonButton = styled(Button)`
@@ -56,87 +84,85 @@ const NeonButton = styled(Button)`
   }
 `;
 
-const NeonProgress = styled(LinearProgress)`
-  && {
-    background-color: rgba(155, 81, 224, 0.1);
-    & .MuiLinearProgress-bar {
-      background-color: #9b51e0;
-    }
-  }
-`;
 
-const PhaseCard = ({ phase }) => {
+const PhaseCard = ({ deck, quiz }) => {
   const navigate = useNavigate();
   const { loadQuiz, quizData, loading } = useQuiz();
-  const [reviewed, setReviewed] = useState(0);
-  const [getLastQuizResponse] = useLazyQuery(GET_LAST_USER_QUIZ_RESPONSE);
+  const { resetSession } = useFlashcards();
 
-  useEffect(() => {
-    const fetchLastQuizResponse = async () => {
-      const userId = "carlos"; // Substitua pelo ID do usuário real
-      const quizId = phase.id;
-
-      try {
-        const { data } = await getLastQuizResponse({ variables: { userId, quizId } });
-        if (data && data.getLastUserQuizResponse) {
-          const score = data.getLastUserQuizResponse.score;
-          const totalQuestions = phase.questions ? phase.questions.length : 10; // Ajuste conforme necessário
-          const reviewedPercentage = Math.round((score / totalQuestions) * 100);
-          setReviewed(reviewedPercentage);
-        } else {
-          setReviewed(0); // Define como 0% se não houver resposta anterior
-        }
-      } catch (error) {
-        console.error("Erro ao buscar a última resposta do quiz:", error);
-        setReviewed(0);
-      }
-    };
-
-    fetchLastQuizResponse();
-  }, [getLastQuizResponse, phase]);
-
-  const isQuizUnlocked = true; // Ajuste conforme necessário
-  const unlocked = true; // Ajuste conforme necessário
-  const completed = 50; // Ajuste conforme necessário
+  const unlocked = !deck.isLocked && !quiz.isLocked;
+  const isQuizUnlocked = quiz.score >= 70 || deck.score >= 70;
 
   const handleStartFlashcards = () => {
-    navigate('/flashcards', { state: { deck: phase } });
+    resetSession();
+    navigate('/flashcards', { state: { deck } });
+  };
+  const getLastAttemptText = (lastAccessed) => {
+    if (!lastAccessed) return 'Nenhuma tentativa registrada';
+
+    const lastAttemptDate = new Date(lastAccessed);
+    const now = new Date();
+    const diffDays = Math.floor((now - lastAttemptDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Hoje';
+    if (diffDays === 1) return 'Ontem';
+    return `${diffDays} dias atrás`;
   };
 
   const handleStartQuiz = async () => {
-    await loadQuiz(phase.id);
-    navigate('/quiz', { state: { deck: phase, quiz: quizData } });
+    await loadQuiz(deck.id);
+    navigate('/quiz', { state: { deck, quiz: quizData } });
   };
 
   return (
     <StyledCard>
-      <CardImage src={exampleImage} />
+      <CardImage src={deck.imageUrl} unlocked={unlocked} />
       <CardContentWrapper unlocked={unlocked}>
         <CardContent>
-          <Typography variant="h6">{phase.title}</Typography>
-          <Typography variant="body2" color="textSecondary">
-            {phase.theme}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {completed}% completado
-          </Typography>
-          <NeonProgress variant="determinate" value={completed} />
-          <Typography variant="body2" color="textSecondary">
-            {reviewed}% Revisado
-          </Typography>
-          <NeonProgress variant="determinate" value={reviewed} />
+          <Typography variant="h6">{deck.title}</Typography>
+          <ScoreRow>
+          <ScoreText>📚 Flashcards:</ScoreText>
+          <Typography variant="subtitle1" fontWeight="bold">{deck.score} pontos</Typography>
+          {deck.score >= 70 ? (
+            <CheckCircle color="success" />
+          ) : deck.score >= 50 ? (
+            <ErrorOutline color="warning" />
+          ) : (
+            <Cancel color="error" />
+          )}
+        </ScoreRow>
+        <SubText>Última tentativa: {getLastAttemptText(deck.lastAccessed)}</SubText>
+
+        <ScoreRow>
+          <ScoreText>📝 Quiz:</ScoreText>
+          <Typography variant="subtitle1" fontWeight="bold">{quiz.score} pontos</Typography>
+          {quiz.score >= 70 ? (
+            <CheckCircle color="success" />
+          ) : quiz.score >= 50 ? (
+            <ErrorOutline color="warning" />
+          ) : (
+            <Cancel color="error" />
+          )}
+        </ScoreRow>
+        <SubText>Última tentativa: {getLastAttemptText(quiz.lastAccessed)}</SubText>
+
           <Box display="flex" justifyContent="space-between" mt={2}>
-            <NeonButton onClick={handleStartFlashcards} variant="contained" color="primary" disabled={!unlocked} style={{ marginRight: '0.5rem' }}>
+            <NeonButton onClick={handleStartFlashcards} variant="contained" disabled={!unlocked}>
               Iniciar Flashcards
             </NeonButton>
-            <NeonButton onClick={handleStartQuiz} variant="contained" color="primary" disabled={!isQuizUnlocked}>
-              {loading ? 'Carregando...' : 'Iniciar Quiz'}
-            </NeonButton>
+            <Tooltip title={!isQuizUnlocked ? 'Você precisa completar os flashcards primeiro' : ''} disableHoverListener={isQuizUnlocked}>
+              <span>
+                <NeonButton onClick={handleStartQuiz} variant="contained" disabled={!isQuizUnlocked}>
+                  {loading ? 'Carregando...' : 'Iniciar Quiz'}
+                </NeonButton>
+              </span>
+            </Tooltip>
           </Box>
         </CardContent>
       </CardContentWrapper>
       <LockOverlay unlocked={unlocked}>
         <Lock fontSize="large" />
+        <LockMessage>Fase Bloqueada</LockMessage>
       </LockOverlay>
     </StyledCard>
   );

@@ -4,6 +4,9 @@ import { Refresh as RefreshIcon, ArrowBack, ArrowForward, Info as InfoIcon } fro
 import styled, { css } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
+import { useFlashcards } from '../context/FlashcardsContext';
+import PracticeResultModal  from '../components/PracticeResult'
+
 
 const FlashcardsContainer = styled.div`
   display: flex;
@@ -126,13 +129,25 @@ const ProgressDots = styled.div`
   }
 `;
 
+const SubmitButton = styled(Button)`
+  background-color: #5650F5 !important;
+  color: white !important;
+  margin-top: 1em;
+  width: 50%;
+  align-self: center;
+`;
+
 const FlashcardsPage = () => {
   const location = useLocation();
   const { deck } = location.state;
+  const { updateCardMetrics, submitResponse } = useFlashcards();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [progress, setProgress] = useState(deck.cards.map(() => ({ status: 'pending' })));
+  const [repeatedCards, setRepeatedCards] = useState([]);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [totalScore, setTotalScore] = useState(0);
 
   const handleFlip = () => setFlipped(!flipped);
 
@@ -140,34 +155,66 @@ const FlashcardsPage = () => {
     const newProgress = [...progress];
     newProgress[currentCardIndex].status = 'correct';
     setProgress(newProgress);
+    updateCardMetrics(deck.id, deck.cards[currentCardIndex].id, true, 'userId');
+    handleNext(); 
   };
 
-  const handleMarkIncorrect = () => {
+const handleMarkIncorrect = () => {
     const newProgress = [...progress];
     newProgress[currentCardIndex].status = 'incorrect';
     setProgress(newProgress);
-  };
+
+    // Randomly reinsert the card into the remaining deck if not the last card
+    if (currentCardIndex < deck.cards.length - 1) {
+        const randomIndex = Math.floor(Math.random() * (deck.cards.length - currentCardIndex - 1)) + currentCardIndex + 1;
+        deck.cards.splice(randomIndex, 0, deck.cards[currentCardIndex]);
+        newProgress.splice(randomIndex, 0, { status: 'pending' });
+    } else {
+        setRepeatedCards([...repeatedCards, deck.cards[currentCardIndex]]);
+    }
+
+    updateCardMetrics(deck.id, deck.cards[currentCardIndex].id, false, 'userId');
+    handleNext();
+};
+  
 
   const handleNext = () => {
     if (currentCardIndex < deck.cards.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
+      setFlipped(false);
+    } else if (repeatedCards.length > 0) {
+      setCurrentCardIndex(deck.cards.length); // Move to the first repeated card
+      setFlipped(false);
     }
-    setFlipped(false);
   };
 
   const handlePrev = () => {
     if (currentCardIndex > 0) {
       setCurrentCardIndex(currentCardIndex - 1);
+      setFlipped(false);
+    }
+  };
+
+  const handleSubmitResponses = async () => {
+    const finalResponse = await submitResponse()
+    setTotalScore(finalResponse.score);
+    setShowResultModal(true);
+};
+
+  const handleDotClick = (index) => {
+    if (index < deck.cards.length) {
+      setCurrentCardIndex(index);
+    } else {
+      setCurrentCardIndex(index);
     }
     setFlipped(false);
   };
 
-  const handleDotClick = (index) => {
-    setCurrentCardIndex(index);
-    setFlipped(false);
-  };
+  const currentCard = currentCardIndex < deck.cards.length 
+    ? deck.cards[currentCardIndex] 
+    : repeatedCards[currentCardIndex - deck.cards.length];
 
-  const currentCard = deck.cards[currentCardIndex];
+  const totalCards = deck.cards.length + repeatedCards.length;
 
   return (
     <FlashcardsContainer>
@@ -224,15 +271,32 @@ const FlashcardsPage = () => {
             onClick={() => handleDotClick(index)}
           ></div>
         ))}
+        {repeatedCards.map((_, index) => (
+          <div
+            key={index + deck.cards.length}
+            className={`dot ${'incorrect'} ${currentCardIndex === index + deck.cards.length ? 'current' : ''}`}
+          ></div>
+        ))}
       </ProgressDots>
       <NavigationWrapper>
         <NavigationButton onClick={handlePrev} variant="contained" color="primary" disabled={currentCardIndex === 0}>
           <ArrowBack />
         </NavigationButton>
-        <NavigationButton onClick={handleNext} variant="contained" color="primary" disabled={currentCardIndex === deck.cards.length - 1}>
+        <NavigationButton onClick={handleNext} variant="contained" color="primary" disabled={currentCardIndex >= totalCards - 1}>
           <ArrowForward />
         </NavigationButton>
       </NavigationWrapper>
+      {currentCardIndex === totalCards - 1 && progress.every((p) => p.status !== 'pending') && (
+  <SubmitButton onClick={handleSubmitResponses} variant="contained">
+    Enviar Respostas
+  </SubmitButton>
+  
+)}
+      <PracticeResultModal 
+        open={showResultModal} 
+        onClose={() => setShowResultModal(false)} 
+        totalScore={totalScore} 
+      />
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Exemplo Prático</DialogTitle>
         <DialogContent>

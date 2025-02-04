@@ -1,43 +1,177 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useLazyQuery } from '@apollo/client';
+import { useLazyQuery, useMutation } from '@apollo/client';
 import { GET_ALL_DECKS } from '../graphql/decks/queries';
+import { useAuth } from '../context/AuthContext';
+import { SAVE_DECK_RESPONSE } from '../graphql/decks/mutations';
 
 const FlashcardsContext = createContext();
 
-export const useFlashcards = () => {
-  return useContext(FlashcardsContext);
-};
+export const useFlashcards = () => useContext(FlashcardsContext);
 
 export const FlashcardsProvider = ({ children }) => {
   const [decks, setDecks] = useState([]);
-  const [hasToken, setHasToken] = useState(false);
+  const [userDeckResponses, setUserDeckResponses] = useState({});
+  const [saveDeckResponse, { loading: mutationLoading, error: mutationError }] = useMutation(SAVE_DECK_RESPONSE);
   const [fetchDecks, { data, loading, error }] = useLazyQuery(GET_ALL_DECKS, {
     fetchPolicy: 'no-cache',
   });
 
+  const { user, token, loading: authLoading } = useAuth();
+  const userId = user?.email;
+
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
     if (token) {
-      setHasToken(true);
-      fetchDecks(); // Faz a query apenas se o token estiver disponível
+      fetchDecks({
+        variables: { id: userId },
+        context: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
     } else {
-      console.log('Token não disponível.');
+      console.log('Token ou userId não disponível.');
     }
-  }, [fetchDecks]);
+  }, [token, userId, fetchDecks]);
 
   useEffect(() => {
     if (data) {
-      console.log('Data recebido do backend:', data); // Verifica os dados brutos recebidos
-      setDecks(data.getAllDecks);
+      console.log('Data recebido do backend:', data);
+      setDecks(data.getAllDecksFromUser);
     }
   }, [data]);
 
-  if (!hasToken) {
-    return <div>Carregando...</div>; // Exibe um loading ou nada se não houver token
+  const updateCardMetrics = (deckId, cardId, correct, currentAttempt) => {
+    if (!user) {
+      console.error("User not authenticated.");
+      return;
+    }
+
+    const deck = decks.find((d) => d.id === deckId);
+    if (!deck) {
+      console.error(`Deck com ID ${deckId} não encontrado.`);
+      return;
+    }
+
+    const response = userDeckResponses[deckId] || {
+      userId,
+      deckId,
+      selectedCardsIds: [],
+      score: 0,
+      cardMetrics: [],
+      date: new Date(),
+    };
+
+    if (!response.selectedCardsIds.includes(cardId)) {
+      response.selectedCardsIds.push(cardId);
+    }
+
+    let cardMetrics = response.cardMetrics.find((metric) => metric.cardId === cardId);
+
+    if (!cardMetrics) {
+      cardMetrics = {
+        cardId,
+        attempts: 0,
+        score: 0,
+        lastAttempt: new Date(),
+        nextReviewDate: new Date(),
+      };
+      response.cardMetrics.push(cardMetrics);
+    }
+
+    cardMetrics.attempts += 1;
+    cardMetrics.lastAttempt = new Date();
+
+    if (correct) {
+      let attemptScore = 1;
+      if (cardMetrics.attempts === 1) attemptScore = 10;
+      else if (cardMetrics.attempts === 2) attemptScore = 7;
+      else if (cardMetrics.attempts === 3) attemptScore = 4;
+
+      cardMetrics.score += attemptScore;
+      response.score += attemptScore;
+    } else {
+      const currentCardIndex = deck.cards.findIndex((c) => c.id === cardId);
+      if (currentCardIndex !== -1) {
+        const randomIndex = Math.floor(Math.random() * (deck.cards.length - currentCardIndex - 1)) + currentCardIndex + 1;
+        deck.cards.splice(randomIndex, 0, deck.cards[currentCardIndex]);
+      }
+    }
+
+    const baseInterval = correct ? cardMetrics.attempts : 1;
+    cardMetrics.nextReviewDate = new Date(Date.now() + baseInterval * 24 * 60 * 60 * 1000);
+
+    setUserDeckResponses((prevState) => ({
+      ...prevState,
+      [deckId]: response,
+    }));
+
+    console.log("Métricas atualizadas:", response);
+  };
+
+  /**
+   * Mapeia `userDeckResponses` para o formato correto antes de enviar a mutação GraphQL.
+   */
+  const mapUserDeckResponses = () => {
+    return Object.values(userDeckResponses).map((response) => ({
+      userId: response.userId,
+      deckId: response.deckId,
+      selectedCardsIds: response.selectedCardsIds,
+      score: response.score,
+      cardMetrics: response.cardMetrics.map((metric) => ({
+        cardId: metric.cardId,
+        attempts: metric.attempts,
+        score: metric.score,
+        lastAttempt: metric.lastAttempt.toISOString(),
+        nextReviewDate: metric.nextReviewDate.toISOString(),
+      })),
+      date: response.date.toISOString(),
+    }));
+  };
+
+  /**
+   * Envia os dados processados para o backend via GraphQL Mutation.
+   */
+  const submitResponse = async () => {
+    console.log('Preparando para enviar respostas...');
+
+    const formattedResponses = mapUserDeckResponses();
+
+    console.log("Dados formatados:", formattedResponses);
+
+    try {
+      const { data } = await saveDeckResponse({
+        variables: { input: formattedResponses[0] }
+      });
+
+      if (mutationError) {
+        throw new Error('Erro ao enviar respostas via GraphQL');
+      }
+
+      console.log('Respostas enviadas com sucesso via GraphQL:', data);
+    } catch (error) {
+      console.error('Erro ao enviar respostas:', error);
+    }
+
+    resetSession();
+    return formattedResponses[0]
+  };
+
+  const resetSession = () => {
+    setUserDeckResponses({});
+    console.log('Session reset');
+  };
+
+  if (authLoading) {
+    return <div>Carregando...</div>;
+  }
+
+  if (!user || !token) {
+    return <div>Usuário não autenticado. Por favor, faça login.</div>;
   }
 
   return (
-    <FlashcardsContext.Provider value={{ decks, loading, error }}>
+    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks }}>
       {children}
     </FlashcardsContext.Provider>
   );

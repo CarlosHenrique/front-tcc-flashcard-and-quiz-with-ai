@@ -5,6 +5,7 @@ import Header from '../../components/Header';
 import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle } from './QuizPageStyles';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuiz } from '../../context/QuizContext';
+import { useAuth } from '../../context/AuthContext';
 import { SAVE_USER_QUIZ_RESPONSE } from '../../graphql/quiz/mutations';
 
 const shuffleOptions = (options) => {
@@ -44,6 +45,8 @@ const QuizPage = () => {
   const [startTime, setStartTime] = useState(null); 
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
   const [userQuizResponse, setUserQuizResponse] = useState(null);
+  const { user } = useAuth();
+  const userId = user?.email;
 
   useEffect(() => {
     loadQuiz(deck.id);
@@ -129,7 +132,6 @@ const QuizPage = () => {
   };
 
   const handleFinalizar = async () => {
-    const userId = 'exemplo-de-user-id'; 
     const quizResponse = finalizeQuiz(userId, quizData.id);
     
     try {
@@ -176,6 +178,14 @@ const QuizPage = () => {
       handleRestartQuiz();
     }
   };
+
+  const handleBackToHome = () => {
+    navigate('/'); // 🔄 Navega para a HomePage
+    setTimeout(() => {
+      window.location.reload(); // 🔄 Força um refresh da página
+    }, 100); // Pequeno delay para garantir que a navegação acontece antes do reload
+  };
+
 
   const handleClear = () => {
     setSelectedOptions(prevSelected => {
@@ -313,7 +323,7 @@ const QuizPage = () => {
             </Typography>
           </StyledDialogContent>
           <StyledDialogActions>
-            <NextQuestionButton onClick={() => navigate('/')}>
+            <NextQuestionButton onClick={handleBackToHome}>
               Voltar para a tela inicial
             </NextQuestionButton>
             {userQuizResponse.score / quizData.questions.length < 0.7 && (

@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import FlashcardsPage from './pages/FlashcardsPage';
 import QuizPage from './pages/quiz/QuizPage';
 import LoginPage from './pages/LoginPage';
+import BadgePage from './pages/ProfilePage';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
@@ -42,6 +43,18 @@ const App = () => {
           user ? (
             <PrivateRoute>
               <FlashcardsPage />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          user ? (
+            <PrivateRoute>
+              <BadgePage />
             </PrivateRoute>
           ) : (
             <Navigate to="/login" />

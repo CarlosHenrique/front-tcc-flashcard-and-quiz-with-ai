@@ -41,7 +41,7 @@ const ButtonWrapper = styled.div`
   height: auto;
 `;
 
-const PhaseCarousel = ({ decks }) => {
+const PhaseCarousel = ({ decks, quizzes }) => {
   const sliderRef = useRef(null);
 
   const next = () => {
@@ -78,14 +78,19 @@ const PhaseCarousel = ({ decks }) => {
       },
     ],
   };
-  
+
   return (
     <>
       <CarouselWrapper>
         <Slider ref={sliderRef} {...settings}>
-          {decks.map((deck) => (
-            <PhaseCard key={deck.id} phase={deck} />
-          ))}
+          {decks.map((deck) => {
+            // 🔹 Encontra o quiz associado ao deck
+            const associatedQuiz = quizzes.find((quiz) => quiz.deckAssociatedId === deck.id);
+
+            return (
+              <PhaseCard key={deck.id} deck={deck} quiz={associatedQuiz} />
+            );
+          })}
         </Slider>
       </CarouselWrapper>
       <ButtonWrapper>
