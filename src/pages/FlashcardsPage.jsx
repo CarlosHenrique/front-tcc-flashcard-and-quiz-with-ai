@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Typography, IconButton, Button, Chip, Dialog, DialogTitle, DialogContent } from '@mui/material';
-import { Refresh as RefreshIcon, ArrowBack, ArrowForward, Info as InfoIcon } from '@mui/icons-material';
+import {  Loop as LoopIcon, ArrowBack, ArrowForward, Info as InfoIcon } from '@mui/icons-material';
 import styled, { css } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
@@ -230,7 +230,7 @@ const handleMarkIncorrect = () => {
                 </IconButton>
               </div>
               <IconButton onClick={handleFlip} style={{ color: 'white' }}>
-                <RefreshIcon />
+                <LoopIcon />
               </IconButton>
             </TopSection>
             <MiddleSection>
@@ -246,7 +246,7 @@ const handleMarkIncorrect = () => {
                 </IconButton>
               </div>
               <IconButton onClick={handleFlip} style={{ color: 'white' }}>
-                <RefreshIcon />
+                <LoopIcon />
               </IconButton>
             </TopSection>
             <MiddleSection>
