@@ -74,7 +74,7 @@ const Header = () => {
   const handleNavigateToHome = () => {
     navigate('/');
     setTimeout(() => {
-      window.location.reload();
+  
     }, 100);
   };
 
