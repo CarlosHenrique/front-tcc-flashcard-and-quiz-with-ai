@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import FlashcardsPage from './pages/FlashcardsPage';
 import QuizPage from './pages/quiz/QuizPage';
@@ -12,6 +12,7 @@ import { useAuth } from './context/AuthContext';
 
 const App = () => {
   const { user, loading } = useAuth();
+  const location = useLocation(); // Captura a URL atual
 
   if (loading) {
     return (
@@ -25,9 +26,18 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
+      {/* Adicionamos uma key para a HomePage ser recriada ao navegar para "/" */}
       <Route
         path="/"
-        element={user ? <PrivateRoute><HomePage /></PrivateRoute> : <Navigate to="/login" />}
+        element={
+          user ? (
+            <PrivateRoute>
+              <HomePage key={location.pathname === '/' ? new Date().getTime() : 'home'} />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
       />
 
       <Route
