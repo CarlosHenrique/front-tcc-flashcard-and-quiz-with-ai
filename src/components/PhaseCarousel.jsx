@@ -95,10 +95,10 @@ const PhaseCarousel = ({ decks, quizzes }) => {
       </CarouselWrapper>
       <ButtonWrapper>
         <StyledButton onClick={previous}>
-          Previous
+          Anterior
         </StyledButton>
         <StyledButton onClick={next}>
-          Next
+          Próximo
         </StyledButton>
       </ButtonWrapper>
     </>
