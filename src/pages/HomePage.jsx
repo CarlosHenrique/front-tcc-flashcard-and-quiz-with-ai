@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Typography, CircularProgress, Box } from '@mui/material';
+import { Typography, CircularProgress, Box, Fab, Dialog, DialogContent, IconButton, Tooltip } from '@mui/material';
+import { PlayArrow, Close } from '@mui/icons-material';
+import ReactPlayer from 'react-player';
 import PhaseCarousel from '../components/PhaseCarousel';
 import Header from '../components/Header';
 import { useFlashcards } from '../context/FlashcardsContext';
@@ -24,42 +26,31 @@ const StyledTypography = styled(Typography)`
   }
 `;
 
+// Estilizando o botão flutuante
+const FloatingButton = styled(Fab)`
+  && {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #5650F5;
+    color: white;
+    
+    &:hover {
+      background-color: #3e39d1;
+    }
+  }
+`;
+
 const HomePage = () => {
   const { decks, loading: loadingFlashcards, error: errorFlashcards } = useFlashcards();
-  const { allQuizzes, fetchAllQuizzes, loading: loadingQuizzes, error: errorQuizzes } = useQuiz(); // Pegando `fetchAllQuizzes`
+  const { allQuizzes, fetchAllQuizzes, loading: loadingQuizzes, error: errorQuizzes } = useQuiz();
 
-  // 🔹 Buscar quizzes quando a página for carregada
+  // Estado para abrir/fechar o modal do vídeo
+  const [openModal, setOpenModal] = useState(false);
+
   useEffect(() => {
     fetchAllQuizzes();
   }, [fetchAllQuizzes]);
-
-  useEffect(() => {
-    if (loadingFlashcards) {
-      console.log('Aguarde, carregando...');
-    } else if (decks && decks.length > 0) {
-      console.log('Decks carregados!');
-    } else if (!loadingFlashcards && decks.length === 0) {
-      console.log('Nenhum dado recebido.');
-    }
-
-    if (errorFlashcards) {
-      console.error('Erro ao carregar os dados:', errorFlashcards);
-    }
-  }, [decks, loadingFlashcards, errorFlashcards]);
-
-  useEffect(() => {
-    if (loadingQuizzes) {
-      console.log('Carregando quizzes...');
-    } else if (allQuizzes.length > 0) {
-      console.log('Quizzes carregados!');
-    } else {
-      console.log('Nenhum quiz encontrado.');
-    }
-
-    if (errorQuizzes) {
-      console.error('Erro ao carregar quizzes:', errorQuizzes);
-    }
-  }, [allQuizzes, loadingQuizzes, errorQuizzes]);
 
   if (loadingFlashcards || loadingQuizzes) {
     return (
@@ -81,7 +72,6 @@ const HomePage = () => {
     return <p>Nenhum deck disponível.</p>;
   }
 
-
   return (
     <HomeWrapper>
       <Header />
@@ -89,6 +79,32 @@ const HomePage = () => {
         Selecione a fase:
       </StyledTypography>
       <PhaseCarousel decks={decks} quizzes={allQuizzes} />
+
+      {/* Botão Flutuante com Tooltip informativo */}
+      <Tooltip title="Clique para ver um vídeo sobre a plataforma" arrow>
+        <FloatingButton onClick={() => setOpenModal(true)} aria-label="Ver vídeo de apresentação">
+          <PlayArrow />
+        </FloatingButton>
+      </Tooltip>
+
+      {/* Modal com o vídeo de apresentação */}
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
+        <DialogContent>
+          <IconButton 
+            aria-label="Fechar vídeo" 
+            onClick={() => setOpenModal(false)} 
+            sx={{ position: 'absolute', right: 10, top: 10 }}
+          >
+            <Close />
+          </IconButton>
+          <ReactPlayer 
+            url="https://youtu.be/E3Sx7Ek-7Vw" // Substitua pelo link do seu vídeo
+            width="100%"
+            height="400px"
+            controls
+          />
+        </DialogContent>
+      </Dialog>
     </HomeWrapper>
   );
 };
