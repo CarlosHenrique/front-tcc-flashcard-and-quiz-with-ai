@@ -60,7 +60,6 @@ const PracticeResultModal = ({ open, onClose, totalScore, passingScore = 70 }) =
     onClose();
     navigate('/'); // 🔄 Navega para a HomePage
     setTimeout(() => {
-      window.location.reload(); // 🔄 Força um refresh da página
     }, 100); // Pequeno delay para garantir que a navegação acontece antes do reload
   };
 
