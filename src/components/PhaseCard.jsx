@@ -7,6 +7,7 @@ import { Lock, CheckCircle, ErrorOutline, Cancel, PlayCircleOutline, Close } fro
 import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
 
+// Estilos
 const StyledCard = styled(Card)`
   margin: 1rem;
   width: 90%;
@@ -104,6 +105,7 @@ const PhaseCard = ({ deck, quiz }) => {
   const { loadQuiz, quizData, loading } = useQuiz();
   const { resetSession } = useFlashcards();
   const [openModal, setOpenModal] = useState(false);
+  const [canClose, setCanClose] = useState(false); // Novo estado para controle do fechamento do modal
 
   const unlocked = !deck.isLocked && !quiz.isLocked;
   const isQuizUnlocked = quiz.score >= 70 || deck.score >= 70;
@@ -157,21 +159,32 @@ const PhaseCard = ({ deck, quiz }) => {
         </Typography>
       </LockOverlay>
 
-      {/* Modal com ReactPlayer para exibir o vídeo */}
-      <VideoModal open={openModal} onClose={() => setOpenModal(false)}>
+      {/* Modal com ReactPlayer para exibir o vídeo e bloquear o fechamento até o final */}
+      <VideoModal open={openModal} onClose={canClose ? () => setOpenModal(false) : null}>
         <ModalContent>
-          <CloseButton onClick={() => setOpenModal(false)}>
+          {/* Botão de fechar desativado até o vídeo terminar */}
+          <CloseButton onClick={canClose ? () => setOpenModal(false) : null} disabled={!canClose}>
             <Close />
           </CloseButton>
+
           <Typography variant="h5" style={{ marginBottom: '1rem' }}>
             {deck.title} - Fase de estratégia
           </Typography>
+
           <ReactPlayer
             url={deck.videoUrl}
             width="100%"
             height="80%"
             controls
+            onEnded={() => setCanClose(true)} // Habilita o botão de fechar após o vídeo terminar
           />
+
+          {/* Mensagem de aviso enquanto o vídeo não termina */}
+          {!canClose && (
+            <Typography variant="body2" color="gray" style={{ textAlign: "center", marginTop: "1rem" }}>
+              O vídeo deve ser assistido até o final para fechar.
+            </Typography>
+          )}
         </ModalContent>
       </VideoModal>
     </StyledCard>
