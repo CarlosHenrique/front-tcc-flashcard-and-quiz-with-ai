@@ -161,6 +161,23 @@ export const FlashcardsProvider = ({ children }) => {
     console.log('Session reset');
   };
 
+  // Função para buscar um deck pelo ID
+  const getDeckById = (deckId) => {
+    if (!decks || decks.length === 0) {
+      console.error('Nenhum deck disponível');
+      return null;
+    }
+    
+    const deck = decks.find(d => d.id === deckId);
+    
+    if (!deck) {
+      console.error(`Deck com ID ${deckId} não encontrado`);
+      return null;
+    }
+    
+    return deck;
+  };
+
   if (authLoading) {
     return <div>Carregando...</div>;
   }
@@ -170,7 +187,7 @@ export const FlashcardsProvider = ({ children }) => {
   }
 
   return (
-    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks }}>
+    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks, getDeckById }}>
       {children}
     </FlashcardsContext.Provider>
   );

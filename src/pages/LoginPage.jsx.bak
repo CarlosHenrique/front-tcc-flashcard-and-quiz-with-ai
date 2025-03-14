@@ -315,7 +315,7 @@ const LoginPage = () => {
   const [signUp] = useMutation(SIGNUP_MUTATION, {
     onCompleted: (data) => {
       setIsLoading(false);
-      setSuccessMessage('Cadastro realizado com sucesso! Redirecionando para o login...');
+      setSuccessMessage('Cadastro realizado com sucesso! Redirecionando...');
       setTimeout(() => {
         login(data.signUp.user, data.signUp.access_token);
         navigate('/');
