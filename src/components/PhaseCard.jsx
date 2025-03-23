@@ -192,8 +192,32 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
       alert('Complete os flashcards primeiro para desbloquear o quiz!');
       return;
     }
+
+    console.log('Navegando para o quiz com os seguintes dados:', {
+      deckId: deck.id,
+      quizId: quizzes[0].id,
+      deck: deck,
+      quiz: quizzes[0]
+    });
     
-    navigate(`/quiz/${quizzes[0].id}`);
+    navigate(`/quiz/${deck.id}/${quizzes[0].id}`, { 
+      state: { 
+        deck: {
+          id: deck.id,
+          title: deck.title,
+          description: deck.description,
+          isLocked: deck.isLocked,
+          isCompleted: deck.isCompleted,
+          score: deck.score,
+          progress: deck.progress
+        },
+        quiz: {
+          id: quizzes[0].id,
+          title: quizzes[0].title,
+          description: quizzes[0].description
+        }
+      }
+    });
   };
   
   // Função para abrir o modal de vídeo

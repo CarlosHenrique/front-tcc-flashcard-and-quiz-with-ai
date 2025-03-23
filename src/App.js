@@ -52,7 +52,15 @@ const App = () => {
 
       <Route
         path="/quiz/:deckId/:quizId"
-        element={user ? <PrivateRoute><QuizPage /></PrivateRoute> : <Navigate to="/login" />}
+        element={
+          user ? (
+            <PrivateRoute>
+              <QuizPage key={location.pathname} />
+            </PrivateRoute>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
       />
     </Routes>
   );

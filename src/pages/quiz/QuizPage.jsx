@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button } from '@mui/material';
+import { Typography, Button, Box, LinearProgress } from '@mui/material';
 import { useMutation } from '@apollo/client';
 import Header from '../../components/Header';
-import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle } from './QuizPageStyles';
+import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle, TimerContainer, ActionButton, NavigationButton } from './QuizPageStyles';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuiz } from '../../context/QuizContext';
 import { useAuth } from '../../context/AuthContext';
 import { SAVE_USER_QUIZ_RESPONSE } from '../../graphql/quiz/mutations';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import TimerIcon from '@mui/icons-material/Timer';
+import StarIcon from '@mui/icons-material/Star';
+import Confetti from 'react-confetti';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 const shuffleOptions = (options) => {
   const shuffledOptions = options
@@ -33,7 +41,6 @@ const QuizPage = () => {
   const [saveQuizUserResponse] = useMutation(SAVE_USER_QUIZ_RESPONSE);
   const location = useLocation();
   const navigate = useNavigate();
-  const { deck } = location.state;
   const { loadQuiz, quizData, saveResponse, finalizeQuiz, resetQuizContext, loading, error } = useQuiz();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -47,13 +54,33 @@ const QuizPage = () => {
   const [userQuizResponse, setUserQuizResponse] = useState(null);
   const { user } = useAuth();
   const userId = user?.email;
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [scoreMultiplier, setScoreMultiplier] = useState(1);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [questionStartTime, setQuestionStartTime] = useState(null);
+  const [totalTime, setTotalTime] = useState(0);
 
   useEffect(() => {
+    console.log('Location state:', location.state);
+    console.log('User:', user);
+    
+    if (!location.state?.deck || !location.state?.quiz) {
+      console.log('Dados do deck ou quiz não encontrados no state');
+      navigate('/');
+      return;
+    }
+
+    const { deck, quiz } = location.state;
+    console.log('Carregando quiz para o deck:', deck.id);
     loadQuiz(deck.id);
-  }, [deck.id, loadQuiz]);
+    setStartTime(new Date());
+  }, [location.state, loadQuiz, navigate, user]);
 
   useEffect(() => {
     if (quizData) {
+      console.log('Quiz data recebido:', quizData);
       const shuffledQuestions = quizData.questions.map((question) => ({
         ...question,
         shuffledOptions: shuffleOptions(question.options),
@@ -62,7 +89,7 @@ const QuizPage = () => {
       setSelectedOptions(Array(quizData.questions.length).fill([]));
       setProgress(shuffledQuestions.map(() => ({ status: 'pending' })));
       setShuffledQuizData({ ...quizData, questions: shuffledQuestions });
-      setStartTime(new Date()); 
+      setQuestionStartTime(new Date());
     }
   }, [quizData]);
 
@@ -77,8 +104,17 @@ const QuizPage = () => {
       return newSelected;
     });
 
-    setStartTime(new Date()); 
+    setQuestionStartTime(new Date());
   }, [currentQuestionIndex, progress]);
+
+  useEffect(() => {
+    if (startTime) {
+      const interval = setInterval(() => {
+        setTotalTime(Math.floor((new Date() - startTime) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [startTime]);
 
   const handleOptionClick = (index) => {
     if (showAnswer) return;
@@ -119,10 +155,29 @@ const QuizPage = () => {
   
     setIsCorrect(isCorrect);
     setOpenDialog(true);
+
+    // Atualiza streak e multiplicador
+    if (isCorrect) {
+      setStreak(prev => prev + 1);
+      setScoreMultiplier(prev => Math.min(prev + 0.2, 2));
+      if (streak >= 2) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
+    } else {
+      setStreak(0);
+      setScoreMultiplier(1);
+    }
   
-    const timeSpent = (new Date() - startTime) / 1000; 
+    const timeSpent = (new Date() - questionStartTime) / 1000;
   
-    saveResponse(currentQuestion.id, { finalAnswer, isCorrect, timeSpent });
+    saveResponse(currentQuestion.id, { 
+      finalAnswer, 
+      isCorrect, 
+      timeSpent,
+      streak,
+      scoreMultiplier 
+    });
   
     const newProgress = [...progress];
     newProgress[currentQuestionIndex] = { status: isCorrect ? 'correct' : 'incorrect' };
@@ -231,11 +286,34 @@ const QuizPage = () => {
 
   return (
     <QuizWrapper>
+      {showConfetti && <Confetti />}
       <Header />
+      
       <QuestionCard>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <EmojiEventsIcon sx={{ color: '#FFD700' }} />
+              <Typography variant="h6">Streak: {streak}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StarIcon sx={{ color: '#FFD700' }} />
+              <Typography variant="h6">x{scoreMultiplier.toFixed(1)}</Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: 'rgba(255, 255, 255, 0.1)', padding: '0.5rem 1rem', borderRadius: '1rem' }}>
+            <TimerIcon sx={{ color: '#FFD700' }} />
+            <Typography variant="h6">
+              {Math.floor(totalTime / 60)}:{(totalTime % 60).toString().padStart(2, '0')}
+            </Typography>
+          </Box>
+        </Box>
+
         <QuestionBadge label={questionTypeMap[currentQuestion.type]} color="primary" />
-        <Typography variant="h5">{`${currentQuestionIndex + 1}. ${currentQuestion.question}`}</Typography>
-        <OptionsWrapper mt={3}>
+        <Typography variant="h5" sx={{ mb: 2, maxHeight: '150px', overflowY: 'auto' }}>
+          {`${currentQuestionIndex + 1}. ${currentQuestion.question}`}
+        </Typography>
+        <OptionsWrapper mt={3} sx={{ maxHeight: '300px', overflowY: 'auto' }}>
           {currentQuestion.shuffledOptions && currentQuestion.shuffledOptions.map((option, index) => (
             <OptionButton
               key={index}
@@ -250,20 +328,19 @@ const QuizPage = () => {
         <BottomSection>
           {selectedOptions[currentQuestionIndex]?.length > 0 && !showAnswer && (
             <>
-              <Button
-                variant="contained"
-                color="primary"
+              <ActionButton
+                variant="clear"
                 onClick={handleClear}
+                startIcon={<DeleteIcon />}
               >
                 Limpar
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
+              </ActionButton>
+              <ActionButton
                 onClick={handleSend}
+                startIcon={<SendIcon />}
               >
                 Enviar
-              </Button>
+              </ActionButton>
             </>
           )}
         </BottomSection>
@@ -278,28 +355,33 @@ const QuizPage = () => {
         ))}
       </ProgressDots>
       <ButtonWrapper>
-        <Button
-          variant="contained"
-          style={{ backgroundColor: '#f0f0f0', color: '#000' }}
+        <NavigationButton
           onClick={() => handleDotClick(currentQuestionIndex - 1)}
           disabled={currentQuestionIndex === 0}
+          startIcon={<ArrowBackIcon />}
         >
           Anterior
-        </Button>
-        <Button
-          variant="contained"
-          style={{ backgroundColor: '#f0f0f0', color: '#000' }}
+        </NavigationButton>
+        <NavigationButton
           onClick={() => handleDotClick(currentQuestionIndex + 1)}
           disabled={currentQuestionIndex >= shuffledQuizData.questions.length - 1}
+          endIcon={<ArrowForwardIcon />}
         >
           Próximo
-        </Button>
+        </NavigationButton>
       </ButtonWrapper>
 
       <StyledDialog open={openDialog} onClose={handleDialogClose}>
-        <StyledDialogTitle>{isCorrect ? 'Correto!' : 'Incorreto!'}</StyledDialogTitle>
+        <StyledDialogTitle>
+          {isCorrect ? '🎉 Correto!' : '❌ Incorreto!'}
+        </StyledDialogTitle>
         <StyledDialogContent>
           <Typography>{currentQuestion.explanation}</Typography>
+          {isCorrect && streak > 0 && (
+            <Typography variant="h6" sx={{ mt: 2, color: '#7AA211' }}>
+              Streak: {streak} 🔥
+            </Typography>
+          )}
         </StyledDialogContent>
         <StyledDialogActions>
           <NextQuestionButton onClick={handleDialogClose}>

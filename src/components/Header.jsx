@@ -80,11 +80,7 @@ const Header = () => {
     navigate('/profile');
   };
 
-  const handleSettings = () => {
-    handleClose();
-    navigate('/settings');
-  };
-
+ 
   const goToHome = () => {
     navigate('/');
   };
@@ -167,10 +163,7 @@ const Header = () => {
               <Typography variant="body1">Perfil</Typography>
             </StyledMenuItem>
             
-            <StyledMenuItem onClick={handleSettings}>
-              <Settings fontSize="small" color="primary" />
-              <Typography variant="body1">Configurações</Typography>
-            </StyledMenuItem>
+           
             
             <StyledMenuItem onClick={handleLogout}>
               <Logout fontSize="small" color="error" />

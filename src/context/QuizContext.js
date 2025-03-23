@@ -11,7 +11,7 @@ export const useQuiz = () => {
 
 export const QuizProvider = ({ children }) => {
   const [quizData, setQuizData] = useState(null);
-  const [allQuizzes, setAllQuizzes] = useState([]); // 🔹 Armazena todos os quizzes do usuário
+  const [allQuizzes, setAllQuizzes] = useState([]);
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,47 +21,79 @@ export const QuizProvider = ({ children }) => {
   
   const { user } = useAuth();
 
-  // 🔹 Query para buscar um quiz específico associado a um deck
-  const [fetchQuiz, { data, called, loading: quizLoading, error: quizError }] = useLazyQuery(GET_QUIZ_BY_DECK_ASSOCIATED_ID, { fetchPolicy: 'no-cache' });
+  const [fetchQuiz, { data, called, loading: quizLoading, error: quizError }] = useLazyQuery(GET_QUIZ_BY_DECK_ASSOCIATED_ID, { 
+    fetchPolicy: 'no-cache',
+    onCompleted: (data) => {
+      console.log('Query do quiz completada:', data);
+      if (data && data.getQuizFromUser) {
+        setQuizData(data.getQuizFromUser);
+        setQuizStartTime(new Date());
+        setQuestionStartTime(new Date());
+        setLoading(false);
+      } else {
+        console.error('Dados do quiz não encontrados na resposta:', data);
+        setError('Dados do quiz não encontrados');
+        setLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error('Erro ao buscar o quiz:', error);
+      setError(error);
+      setLoading(false);
+    }
+  });
 
-  // 🔹 Query para buscar TODOS os quizzes do usuário
-  const [fetchAllQuizzesQuery, { data: allQuizzesData, loading: allQuizzesLoading, error: allQuizzesError }] = useLazyQuery(GET_ALL_QUIZZES_FROM_USER, { fetchPolicy: 'no-cache' });
+  const [fetchAllQuizzesQuery, { data: allQuizzesData, loading: allQuizzesLoading, error: allQuizzesError }] = useLazyQuery(GET_ALL_QUIZZES_FROM_USER, { 
+    fetchPolicy: 'no-cache',
+    onCompleted: (data) => {
+      if (data && data.getAllQuizzesFromUser) {
+        setAllQuizzes(data.getAllQuizzesFromUser);
+        setLoading(false);
+      }
+    },
+    onError: (error) => {
+      setError(error);
+      setLoading(false);
+    }
+  });
 
-  // 🔹 Carrega um quiz específico pelo deckId
   const loadQuiz = useCallback((deckId) => {
+    console.log('Iniciando carregamento do quiz para o deck:', deckId);
+    
+    if (!deckId || !user?.email) {
+      console.error('Deck ID ou usuário não encontrado:', { deckId, userEmail: user?.email });
+      setError('Deck ID ou usuário não encontrado');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    fetchQuiz({ variables: { deckId, userId: user.email } });
-  }, [fetchQuiz, user.email]);
+    setError(null);
+    
+    console.log('Fazendo query para buscar o quiz...');
+    fetchQuiz({ 
+      variables: { 
+        deckId, 
+        userId: user.email 
+      }
+    });
+  }, [fetchQuiz, user?.email]);
 
-  // 🔹 Busca todos os quizzes do usuário
   const fetchAllQuizzes = useCallback(() => {
-    if (user?.email) {
-      setLoading(true);
-      fetchAllQuizzesQuery({ variables: { id: user.email } });
+    if (!user?.email) {
+      setError('Usuário não encontrado');
+      setLoading(false);
+      return;
     }
-  }, [fetchAllQuizzesQuery, user]);
 
-  useEffect(() => {
-    if (called && !quizLoading && data) {
-      setQuizData(data.getQuizFromUser);
-      setQuizStartTime(new Date());
-      setQuestionStartTime(new Date());
-      setLoading(false);
-    } else if (quizError) {
-      setError(quizError);
-      setLoading(false);
-    }
-  }, [called, quizLoading, data, quizError]);
-
-  useEffect(() => {
-    if (allQuizzesData) {
-      setAllQuizzes(allQuizzesData.getAllQuizzesFromUser);
-      setLoading(false);
-    } else if (allQuizzesError) {
-      setError(allQuizzesError);
-      setLoading(false);
-    }
-  }, [allQuizzesData, allQuizzesError]);
+    setLoading(true);
+    setError(null);
+    fetchAllQuizzesQuery({ 
+      variables: { 
+        id: user.email 
+      }
+    });
+  }, [fetchAllQuizzesQuery, user?.email]);
 
   const saveResponse = (questionId, response) => {
     const currentTime = new Date();
@@ -113,7 +145,7 @@ export const QuizProvider = ({ children }) => {
 
   const resetQuizContext = () => {
     setQuizData(null);
-    setAllQuizzes([]); // 🔹 Limpa a lista de quizzes
+    setAllQuizzes([]);
     setResponses([]);
     setLoading(false);
     setError(null);
@@ -126,14 +158,14 @@ export const QuizProvider = ({ children }) => {
     <QuizContext.Provider
       value={{
         quizData,
-        allQuizzes, // 🔹 Disponibiliza todos os quizzes no contexto
+        allQuizzes,
         loadQuiz,
-        fetchAllQuizzes, // 🔹 Função para buscar todos os quizzes do usuário
+        fetchAllQuizzes,
         responses,
         resetQuizContext,
         saveResponse,
         finalizeQuiz,
-        loading: loading || allQuizzesLoading, // 🔹 Considera o loading dos quizzes
+        loading: loading || allQuizzesLoading,
         error,
       }}
     >
