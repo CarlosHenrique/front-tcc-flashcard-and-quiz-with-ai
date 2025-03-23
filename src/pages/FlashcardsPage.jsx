@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import Header from '../components/Header';
 import { useFlashcards } from '../context/FlashcardsContext';
 import PracticeResultModal from '../components/PracticeResult';
+import { useAuth } from '../context/AuthContext';
 
 // Componentes
 const TimerComponent = ({ minutes, seconds }) => {
@@ -809,13 +810,24 @@ const CardThumbnail = styled(motion.div)`
   }
 `;
 
+const SideContainer = styled(motion.div)`
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 10;
+`;
+
 const SubmitButton = styled(motion.button)`
   background: linear-gradient(45deg, #5650F5 30%, #7A75F7 90%);
   color: white;
   border: none;
   border-radius: 30px;
   padding: 12px 30px;
-  margin-top: 1.5rem;
   font-weight: bold;
   font-size: 1rem;
   cursor: pointer;
@@ -825,6 +837,7 @@ const SubmitButton = styled(motion.button)`
   gap: 8px;
   box-shadow: 0 4px 15px rgba(86, 80, 245, 0.3);
   transition: all 0.3s ease;
+  white-space: nowrap;
   
   &:hover {
     transform: translateY(-3px);
@@ -929,6 +942,7 @@ const FlashcardsPage = () => {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const { decks, getDeckById, updateCardMetrics, submitResponse, loading } = useFlashcards();
+  const { user } = useAuth();
   
   // Estado para armazenar o deck atual
   const [currentDeck, setCurrentDeck] = useState(null);
@@ -949,15 +963,16 @@ const FlashcardsPage = () => {
   // Referência para controlar se o progresso já foi carregado
   const progressLoaded = useRef(false);
   
-  // Implementação do timer
+  // Novo estado para controlar se o estudo está concluído
+  const [isStudyCompleted, setIsStudyCompleted] = useState(false);
+  
+  // Modificar o useEffect do timer
   useEffect(() => {
-    // Iniciar o timer apenas quando o deck estiver carregado
-    if (!currentDeck) return;
+    // Não iniciar o timer se o estudo estiver concluído
+    if (!currentDeck || isStudyCompleted) return;
     
-    // Criar um intervalo que incrementa os segundos a cada segundo
     const timerInterval = setInterval(() => {
       setSeconds(prevSeconds => {
-        // Se os segundos chegarem a 59, incrementa os minutos
         if (prevSeconds >= 59) {
           setMinutes(prevMinutes => prevMinutes + 1);
           return 0;
@@ -966,9 +981,8 @@ const FlashcardsPage = () => {
       });
     }, 1000);
     
-    // Limpar o intervalo quando o componente for desmontado
     return () => clearInterval(timerInterval);
-  }, [currentDeck]);
+  }, [currentDeck, isStudyCompleted]);
   
   // Gerar partículas de fundo aleatórias - Memoizado para evitar re-renderizações
   const backgroundParticles = useMemo(() => Array.from({ length: 15 }, (_, i) => ({
@@ -1063,7 +1077,7 @@ const FlashcardsPage = () => {
     };
   }, []);
 
-  // Função para submeter respostas e mostrar resultados
+  // Modificar a função handleSubmitResponses
   const handleSubmitResponses = async () => {
     // Mostrar confetti para celebrar a conclusão
     setShowConfetti(true);
@@ -1073,22 +1087,44 @@ const FlashcardsPage = () => {
       origin: { y: 0.6 }
     });
     
-    // Usar a pontuação total calculada no progressStats
-    const finalScore = progressStats.totalPoints;
+    // Marcar o estudo como concluído
+    setIsStudyCompleted(true);
+    
+    // Usar o progresso atual para montar o objeto final
+    const finalResponse = {
+      userId: user?.email,
+      deckId: currentDeck.id,
+      selectedCardsIds: currentDeck.cards.slice(0, 10).map(card => card.id),
+      score: progressStats.totalPoints,
+      cardMetrics: currentDeck.cards.slice(0, 10).map((card, index) => {
+        const cardProgress = progress[index];
+        return {
+          cardId: card.id,
+          attempts: cardProgress?.attempts || 0,
+          score: cardProgress?.isCorrect ? 
+            (cardProgress.attempts === 1 ? 10 : 
+             cardProgress.attempts === 2 ? 7 : 
+             cardProgress.attempts === 3 ? 4 : 1) : 0,
+          lastAttempt: new Date().toISOString(),
+          nextReviewDate: new Date(Date.now() + (cardProgress?.attempts || 1) * 24 * 60 * 60 * 1000).toISOString()
+        };
+      }),
+      date: new Date().toISOString()
+    };
     
     try {
-      console.log('Enviando respostas para o servidor...');
+      console.log('Enviando respostas para o servidor...', finalResponse);
       // Submeter as respostas para o servidor
-      const finalResponse = await submitResponse();
-      console.log('Resposta enviada com sucesso:', finalResponse);
+      const response = await submitResponse(finalResponse);
+      console.log('Resposta enviada com sucesso:', response);
       
       // Atualizar a pontuação total e mostrar o modal de resultados
-      setTotalScore(finalScore);
+      setTotalScore(finalResponse.score);
       setShowResultModal(true);
     } catch (error) {
       console.error('Erro ao enviar respostas:', error);
       // Mesmo com erro, mostramos o modal de resultados
-      setTotalScore(finalScore);
+      setTotalScore(finalResponse.score);
       setShowResultModal(true);
     }
     
@@ -1316,16 +1352,16 @@ const FlashcardsPage = () => {
       averageScore: 0
     };
     
-    // Contagem de cartões originais respondidos (não repetidos)
-    const originalCardsCount = currentDeck?.cards?.length || 0;
+    // Contagem de cartões originais (primeiros 10)
+    const originalCardsCount = Math.min(currentDeck?.cards?.length || 0, 10);
     
-    // Cartões respondidos corretamente
+    // Cartões respondidos corretamente (apenas dos originais)
     const correctCount = progress
       .slice(0, originalCardsCount)
       .filter(p => p?.answered && p?.isCorrect === true)
       .length;
     
-    // Cartões marcados para revisão
+    // Cartões marcados para revisão (apenas dos originais)
     const revisitCount = progress
       .slice(0, originalCardsCount)
       .filter(p => p?.revisit === true)
@@ -1340,7 +1376,7 @@ const FlashcardsPage = () => {
     // Total de cartões respondidos (excluindo os que estão para revisão)
     const originalAnsweredCount = correctCount + incorrectCount;
     
-    // Cálculo da pontuação total - apenas para cartões respondidos corretamente
+    // Cálculo da pontuação total - apenas para cartões originais respondidos corretamente
     let totalPoints = 0;
     progress.slice(0, originalCardsCount).forEach(p => {
       if (p?.answered && p?.isCorrect) {
@@ -1365,13 +1401,13 @@ const FlashcardsPage = () => {
       incorrect: incorrectCount,
       revisitCount,
       averageScore,
-      originalAnswered: correctCount, // Apenas cartões respondidos corretamente
+      originalAnswered: correctCount,
       originalTotal: originalCardsCount,
       totalPoints
     };
   }, [progress, currentDeck?.cards?.length]);
 
-  // Função para limpar o estado e retornar à página inicial
+  // Modificar o handleReturnToHome para resetar o estado de conclusão
   const handleReturnToHome = () => {
     // Resetar estados
     setProgress([]);
@@ -1380,16 +1416,15 @@ const FlashcardsPage = () => {
     setCurrentScore(0);
     setMinutes(0);
     setSeconds(0);
+    setIsStudyCompleted(false);
     
     // Navegar para a página inicial
     navigate('/');
   };
 
-  // Função para limpar o progresso e começar novamente
+  // Modificar o handleResetProgress para resetar o estado de conclusão
   const handleResetProgress = () => {
-    // Confirmar com o usuário antes de resetar
     if (window.confirm('Tem certeza que deseja limpar todo o progresso e começar novamente?')) {
-      // Reinicializar o progresso
       const initialProgress = currentDeck.cards.map(() => ({
         status: 'pending',
         answered: false,
@@ -1398,13 +1433,13 @@ const FlashcardsPage = () => {
         revisit: false
       }));
       
-      // Resetar estados
       setProgress(initialProgress);
       setCurrentCardIndex(0);
       setFlipped(false);
       setCurrentScore(0);
       setMinutes(0);
       setSeconds(0);
+      setIsStudyCompleted(false);
       
       console.log('Progresso resetado, começando novamente');
     }
@@ -1508,6 +1543,24 @@ const FlashcardsPage = () => {
         onResetClick={handleResetProgress} 
       />
       
+      {/* Container lateral para o botão de conclusão */}
+      {progress.every(p => p.answered && p.isCorrect) && !progress.some(p => p.revisit) && (
+        <SideContainer
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <SubmitButton 
+            onClick={handleSubmitResponses}
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Celebration />
+            Concluir Estudo
+          </SubmitButton>
+        </SideContainer>
+      )}
+      
       {/* Título do deck */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
@@ -1552,20 +1605,6 @@ const FlashcardsPage = () => {
         currentIndex={currentCardIndex}
         totalCards={currentDeck.cards.length}
       />
-      
-      {progress.every(p => p.answered && p.isCorrect) && !progress.some(p => p.revisit) && (
-        <SubmitButton 
-          onClick={handleSubmitResponses}
-          whileHover={{ scale: 1.05, y: -5 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Celebration />
-          Concluir Estudo
-        </SubmitButton>
-      )}
       
       <PracticeResultModal 
         open={showResultModal} 

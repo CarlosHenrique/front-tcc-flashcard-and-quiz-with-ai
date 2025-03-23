@@ -4,6 +4,7 @@ import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Avatar, Toolti
 import { Settings, Logout, Person } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import mainLogo from '../assets/images/mainLogo.svg';
 
 // Estilos
 const StyledAppBar = styled(AppBar)`
@@ -96,9 +97,9 @@ const Header = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <Logo src="/logo.png" alt="Logo" />
+          <Logo src={mainLogo} alt="Logo" />
           <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-            EduQuiz
+            FlashQuiz
           </Typography>
         </LogoContainer>
 

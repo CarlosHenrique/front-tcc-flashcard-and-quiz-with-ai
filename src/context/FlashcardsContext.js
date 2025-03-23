@@ -113,34 +113,33 @@ export const FlashcardsProvider = ({ children }) => {
    * Mapeia `userDeckResponses` para o formato correto antes de enviar a mutação GraphQL.
    */
   const mapUserDeckResponses = () => {
-    return Object.values(userDeckResponses).map((response) => ({
-      userId: response.userId,
-      deckId: response.deckId,
-      selectedCardsIds: response.selectedCardsIds,
-      score: response.score,
-      cardMetrics: response.cardMetrics.map((metric) => ({
-        cardId: metric.cardId,
-        attempts: metric.attempts,
-        score: metric.score,
-        lastAttempt: metric.lastAttempt.toISOString(),
-        nextReviewDate: metric.nextReviewDate.toISOString(),
-      })),
-      date: response.date.toISOString(),
-    }));
+    return Object.values(userDeckResponses).map((response) => {
+      // Pega apenas os 10 primeiros cartões (originais)
+      const originalCards = response.selectedCardsIds.slice(0, 10);
+      const originalMetrics = response.cardMetrics.filter(metric => 
+        originalCards.includes(metric.cardId)
+      );
+
+      return {
+        userId: response.userId,
+        deckId: response.deckId,
+        selectedCardsIds: originalCards,
+        score: response.score,
+        cardMetrics: originalMetrics,
+        date: response.date.toISOString(),
+      };
+    });
   };
 
   /**
    * Envia os dados processados para o backend via GraphQL Mutation.
    */
-  const submitResponse = async () => {
+  const submitResponse = async (finalResponse) => {
     console.log('Preparando para enviar respostas...');
-
-    const formattedResponses = mapUserDeckResponses();
-
 
     try {
       const { data } = await saveDeckResponse({
-        variables: { input: formattedResponses[0] }
+        variables: { input: finalResponse }
       });
 
       if (mutationError) {
@@ -148,12 +147,13 @@ export const FlashcardsProvider = ({ children }) => {
       }
 
       console.log('Respostas enviadas com sucesso via GraphQL');
+      return data;
     } catch (error) {
       console.error('Erro ao enviar respostas:', error);
+      throw error;
+    } finally {
+      resetSession();
     }
-
-    resetSession();
-    return formattedResponses[0]
   };
 
   const resetSession = () => {

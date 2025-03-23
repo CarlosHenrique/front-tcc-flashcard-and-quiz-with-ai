@@ -174,7 +174,7 @@ const PhaseCarousel = ({ decks, quizzes }) => {
     const nextDeck = sortedDecks[nextIndex];
     
     // Encontra os quizzes associados ao deck atual
-    const currentQuizzes = quizzes.filter(quiz => quiz.deckId === currentDeck.id);
+    const currentQuizzes = quizzes.filter(quiz => quiz.deckAssociatedId === currentDeck.id);
     
     return (
       <>
@@ -212,7 +212,6 @@ const PhaseCarousel = ({ decks, quizzes }) => {
       </>
     );
   };
-  
   return (
     <CarouselContainer>
       <CarouselWrapper>
