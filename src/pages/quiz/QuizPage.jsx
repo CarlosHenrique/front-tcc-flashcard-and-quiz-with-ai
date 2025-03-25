@@ -3,7 +3,7 @@ import { Typography, Button, Box, LinearProgress } from '@mui/material';
 import { useMutation } from '@apollo/client';
 import Header from '../../components/Header';
 import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle, TimerContainer, ActionButton, NavigationButton } from './QuizPageStyles';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useQuiz } from '../../context/QuizContext';
 import { useAuth } from '../../context/AuthContext';
 import { SAVE_USER_QUIZ_RESPONSE } from '../../graphql/quiz/mutations';
@@ -41,7 +41,12 @@ const QuizPage = () => {
   const [saveQuizUserResponse] = useMutation(SAVE_USER_QUIZ_RESPONSE);
   const location = useLocation();
   const navigate = useNavigate();
-  const { loadQuiz, quizData, saveResponse, finalizeQuiz, resetQuizContext, loading, error } = useQuiz();
+  const { user } = useAuth();
+  
+
+
+  const { deck, quiz: quizFromState } = location.state || {};
+  const { loading, error, loadQuiz, saveResponse, finalizeQuiz, resetQuizContext } = useQuiz();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -52,8 +57,6 @@ const QuizPage = () => {
   const [startTime, setStartTime] = useState(null); 
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
   const [userQuizResponse, setUserQuizResponse] = useState(null);
-  const { user } = useAuth();
-  const userId = user?.email;
   const [showConfetti, setShowConfetti] = useState(false);
   const [streak, setStreak] = useState(0);
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
@@ -61,37 +64,38 @@ const QuizPage = () => {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [questionStartTime, setQuestionStartTime] = useState(null);
   const [totalTime, setTotalTime] = useState(0);
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
 
   useEffect(() => {
-    console.log('Location state:', location.state);
-    console.log('User:', user);
+   
+    if (!location.state) {
     
-    if (!location.state?.deck || !location.state?.quiz) {
-      console.log('Dados do deck ou quiz não encontrados no state');
       navigate('/');
       return;
     }
 
-    const { deck, quiz } = location.state;
-    console.log('Carregando quiz para o deck:', deck.id);
-    loadQuiz(deck.id);
-    setStartTime(new Date());
-  }, [location.state, loadQuiz, navigate, user]);
+    if (!location.state.deck || !location.state.quiz) {
 
-  useEffect(() => {
-    if (quizData) {
-      console.log('Quiz data recebido:', quizData);
-      const shuffledQuestions = quizData.questions.map((question) => ({
-        ...question,
-        shuffledOptions: shuffleOptions(question.options),
-      }));
-      
-      setSelectedOptions(Array(quizData.questions.length).fill([]));
-      setProgress(shuffledQuestions.map(() => ({ status: 'pending' })));
-      setShuffledQuizData({ ...quizData, questions: shuffledQuestions });
-      setQuestionStartTime(new Date());
+      navigate('/');
+      return;
     }
-  }, [quizData]);
+
+   
+    setStartTime(new Date());
+    
+    // Usar os dados do quiz diretamente do location.state
+    const shuffledQuestions = location.state.quiz.questions.map((question) => ({
+      ...question,
+      shuffledOptions: shuffleOptions(question.options),
+    }));
+    
+    setSelectedOptions(Array(location.state.quiz.questions.length).fill([]));
+    setProgress(shuffledQuestions.map(() => ({ status: 'pending' })));
+    setShuffledQuizData({ ...location.state.quiz, questions: shuffledQuestions });
+    setQuestionStartTime(new Date());
+    
+  }, [location.state, navigate]);
 
   useEffect(() => {
     if (progress[currentQuestionIndex]) {
@@ -187,7 +191,7 @@ const QuizPage = () => {
   };
 
   const handleFinalizar = async () => {
-    const quizResponse = finalizeQuiz(userId, quizData.id);
+    const quizResponse = finalizeQuiz(user.email, shuffledQuizData.id);
     
     try {
       const { data } = await saveQuizUserResponse({
@@ -198,7 +202,7 @@ const QuizPage = () => {
             selectedQuestionIds: quizResponse.selectedQuestionIds,
             score: quizResponse.score,
             totalQuizTime: quizResponse.totalQuizTime,
-            date: quizResponse.date.toISOString(), // Converte para ISO string
+            date: quizResponse.date.toISOString(),
             questionMetrics: quizResponse.questionMetrics.map(metric => ({
               questionId: metric.questionId,
               attempts: metric.attempts,
@@ -209,12 +213,10 @@ const QuizPage = () => {
         }
       });
       
-      // Se o envio for bem-sucedido, armazene a resposta e abra o diálogo de resultados
       setUserQuizResponse(data.createUserQuizResponse);
       setResultDialogOpen(true);
     } catch (error) {
-      console.error("Erro ao salvar a resposta do quiz:", error);
-      // Adicionar tratamento de erro aqui, se necessário
+      // Tratar erro aqui se necessário
     }
   };
 
@@ -227,7 +229,7 @@ const QuizPage = () => {
 
   const handleCloseResultDialog = () => {
     setResultDialogOpen(false);
-    if (userQuizResponse.score / quizData.questions.length >= 0.7) {
+    if (userQuizResponse.score / shuffledQuizData.questions.length >= 0.7) {
       navigate('/'); 
     } else {
       handleRestartQuiz();
@@ -395,10 +397,10 @@ const QuizPage = () => {
         <StyledDialog open={resultDialogOpen} onClose={handleCloseResultDialog}>
           <StyledDialogTitle>Resultado do Quiz</StyledDialogTitle>
           <StyledDialogContent>
-            <Typography variant="h6" style={{ fontWeight: 'bold', color: userQuizResponse.score / quizData.questions.length >= 0.7 ? 'green' : 'red' }}>
-              {userQuizResponse.score / quizData.questions.length >= 0.7
-                ? `Parabéns! Você acertou ${userQuizResponse.score} de ${quizData.questions.length} questões e passou de fase.`
-                : `Você acertou ${userQuizResponse.score} de ${quizData.questions.length} questões. Tente novamente para passar de fase.`}
+            <Typography variant="h6" style={{ fontWeight: 'bold', color: userQuizResponse.score / shuffledQuizData.questions.length >= 0.7 ? 'green' : 'red' }}>
+              {userQuizResponse.score / shuffledQuizData.questions.length >= 0.7
+                ? `Parabéns! Você acertou ${userQuizResponse.score} de ${shuffledQuizData.questions.length} questões e passou de fase.`
+                : `Você acertou ${userQuizResponse.score} de ${shuffledQuizData.questions.length} questões. Tente novamente para passar de fase.`}
             </Typography>
             <Typography variant="body1" style={{ marginTop: '10px' }}>
               Tempo total: {userQuizResponse.totalQuizTime.toFixed(2)} segundos
@@ -408,7 +410,7 @@ const QuizPage = () => {
             <NextQuestionButton onClick={handleBackToHome}>
               Voltar para a tela inicial
             </NextQuestionButton>
-            {userQuizResponse.score / quizData.questions.length < 0.7 && (
+            {userQuizResponse.score / shuffledQuizData.questions.length < 0.7 && (
               <NextQuestionButton onClick={handleRestartQuiz}>
                 Reiniciar Quiz
               </NextQuestionButton>

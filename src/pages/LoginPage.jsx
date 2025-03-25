@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@apollo/client';
 import { TextField, Button, Typography, IconButton, InputAdornment, Box, Alert, CircularProgress, Fade } from '@mui/material';
-import { Visibility, VisibilityOff, Email, Lock, Person, LightMode, DarkMode } from '@mui/icons-material';
-import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
+import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'react-lottie-player';
 import { useAuth } from '../context/AuthContext';
@@ -11,49 +11,6 @@ import logo from '../assets/images/mainLogo.svg';
 import loginAnimation from '../assets/animations/login-animation.json';
 import { useNavigate } from 'react-router-dom';
 import { LOGIN_MUTATION, SIGNUP_MUTATION } from '../graphql/auth/mutations';
-
-// Temas claro e escuro
-const lightTheme = {
-  primary: '#5650F5',
-  primaryLight: 'rgba(86, 80, 245, 0.05)',
-  primaryDark: '#4540d6',
-  background: '#fff',
-  backgroundSecondary: '#5650F5',
-  text: '#333',
-  textSecondary: '#666',
-  textLight: '#fff',
-  error: '#f44336',
-  success: '#4caf50',
-  inputBg: '#fff',
-  cardShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-};
-
-const darkTheme = {
-  primary: '#7A75FF',
-  primaryLight: 'rgba(122, 117, 255, 0.1)',
-  primaryDark: '#5650F5',
-  background: '#121212',
-  backgroundSecondary: '#1E1E1E',
-  text: '#E0E0E0',
-  textSecondary: '#AAAAAA',
-  textLight: '#fff',
-  error: '#f44336',
-  success: '#4caf50',
-  inputBg: '#2A2A2A',
-  cardShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
-};
-
-// Estilo global
-const GlobalStyle = createGlobalStyle`
-  body {
-    background-color: ${props => props.theme.background};
-    color: ${props => props.theme.text};
-    transition: all 0.3s ease;
-  }
-`;
-
-// Componentes com animação
-const MotionBox = motion(Box);
 
 const LoginWrapper = styled.div`
   display: flex;
@@ -71,11 +28,10 @@ const LeftPanel = styled(motion.div)`
   justify-content: center;
   align-items: center;
   width: 50%;
-  background-color: ${props => props.theme.background};
+  background-color: #FFFFFF;
   padding: 2rem;
   position: relative;
   z-index: 1;
-  transition: background-color 0.3s ease;
 
   @media (max-width: 768px) {
     width: 100%;
@@ -89,25 +45,18 @@ const RightPanel = styled(motion.div)`
   justify-content: center;
   align-items: center;
   width: 50%;
-  background-color: ${props => props.theme.backgroundSecondary};
-  color: ${props => props.theme.textLight};
+  background-color: #5650F5;
+  color: #FFFFFF;
   font-family: 'Rowdies', cursive;
   padding: 2rem;
   position: relative;
   overflow: hidden;
-  transition: background-color 0.3s ease;
 
   @media (max-width: 768px) {
     width: 100%;
     padding: 1.5rem;
     min-height: 30vh;
   }
-`;
-
-const BackgroundCircle = styled(motion.div)`
-  position: absolute;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.1);
 `;
 
 const LoginForm = styled(motion.form)`
@@ -126,8 +75,7 @@ const StyledTextField = styled(TextField)`
     height: 3rem; 
     min-width: 24rem;
     border-radius: 8px;
-    background-color: ${props => props.theme.inputBg};
-    transition: background-color 0.3s ease;
+    background-color: #FFFFFF;
     
     @media (max-width: 768px) {
       min-width: unset;
@@ -138,29 +86,29 @@ const StyledTextField = styled(TextField)`
     transition: all 0.3s ease;
     
     &:hover .MuiOutlinedInput-notchedOutline {
-      border-color: ${props => props.theme.primary};
+      border-color: #5650F5;
     }
     
     &.Mui-focused .MuiOutlinedInput-notchedOutline {
       border-width: 2px;
-      border-color: ${props => props.theme.primary};
+      border-color: #5650F5;
     }
   }
   
   .MuiInputLabel-root {
-    color: ${props => props.theme.textSecondary};
+    color: #666666;
     
     &.Mui-focused {
-      color: ${props => props.theme.primary};
+      color: #5650F5;
     }
   }
   
   .MuiInputBase-input {
-    color: ${props => props.theme.text};
+    color: #333333;
   }
   
   .MuiFormHelperText-root {
-    color: ${props => props.theme.textSecondary};
+    color: #666666;
   }
 `;
 
@@ -173,7 +121,7 @@ const ButtonsWrapper = styled.div`
 `;
 
 const LoginButton = styled(Button)`
-  background-color: ${props => props.theme.primary} !important;
+  background-color: #5650F5 !important;
   color: white !important;
   margin-right: 1rem;
   padding: 0.5rem 1.5rem !important;
@@ -182,7 +130,7 @@ const LoginButton = styled(Button)`
   box-shadow: 0 4px 6px rgba(86, 80, 245, 0.2) !important;
   
   &:hover {
-    background-color: ${props => props.theme.primaryDark} !important;
+    background-color: #4540d6 !important;
     box-shadow: 0 6px 10px rgba(86, 80, 245, 0.3) !important;
     transform: translateY(-2px) !important;
   }
@@ -198,15 +146,15 @@ const LoginButton = styled(Button)`
 `;
 
 const SignupButton = styled(Button)`
-  background-color: ${props => props.theme.background} !important;
-  color: ${props => props.theme.primary} !important;
-  border: 1px solid ${props => props.theme.primary} !important;
+  background-color: #FFFFFF !important;
+  color: #5650F5 !important;
+  border: 1px solid #5650F5 !important;
   padding: 0.5rem 1.5rem !important;
   border-radius: 8px !important;
   transition: all 0.3s ease !important;
   
   &:hover {
-    background-color: ${props => props.theme.primaryLight} !important;
+    background-color: rgba(86, 80, 245, 0.05) !important;
     transform: translateY(-2px) !important;
   }
   
@@ -217,11 +165,11 @@ const SignupButton = styled(Button)`
 
 const ToggleText = styled(motion.p)`
   margin-top: 1.5rem;
-  color: ${props => props.theme.textSecondary};
+  color: #666666;
   font-size: 0.9rem;
   
   span {
-    color: ${props => props.theme.primary};
+    color: #5650F5;
     font-weight: 600;
     cursor: pointer;
     
@@ -238,30 +186,11 @@ const AlertWrapper = styled(motion.div)`
 `;
 
 const FormTitle = styled(motion.h2)`
-  color: ${props => props.theme.text};
+  color: #333333;
   margin-bottom: 1.5rem;
   font-weight: 600;
   font-size: 1.8rem;
   align-self: flex-start;
-  transition: color 0.3s ease;
-`;
-
-const ThemeToggleButton = styled(motion.button)`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  color: ${props => props.theme.text};
-  
-  svg {
-    font-size: 1.8rem;
-  }
 `;
 
 const LoginPage = () => {
@@ -271,7 +200,6 @@ const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -281,10 +209,6 @@ const LoginPage = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
   }, [isSignup, reset]);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   const [userLogin] = useMutation(LOGIN_MUTATION, {
     onCompleted: (data) => {
@@ -386,291 +310,278 @@ const LoginPage = () => {
     }
   };
 
-  const currentTheme = isDarkMode ? darkTheme : lightTheme;
-
   return (
-    <ThemeProvider theme={currentTheme}>
-      <GlobalStyle />
-      <LoginWrapper>
-        <ThemeToggleButton 
-          onClick={toggleTheme}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {isDarkMode ? <LightMode /> : <DarkMode />}
-        </ThemeToggleButton>
-        
-        <LeftPanel
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.img 
-            src={logo} 
-            alt="Logo" 
-            style={{ width: '150px', marginBottom: '2rem' }}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          />
+    <LoginWrapper>
+      <LeftPanel
+        initial={{ x: -50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.img 
+          src={logo} 
+          alt="Logo" 
+          style={{ width: '150px', marginBottom: '2rem' }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        />
 
-          <AnimatePresence mode="wait">
-            {errorMessage && (
-              <AlertWrapper
-                key="error"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <Alert 
-                  severity="error" 
-                  onClose={() => setErrorMessage(null)} 
-                  style={{ width: '100%' }}
-                >
-                  {errorMessage}
-                </Alert>
-              </AlertWrapper>
-            )}
-
-            {successMessage && (
-              <AlertWrapper
-                key="success"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <Alert 
-                  severity="success" 
-                  style={{ width: '100%' }}
-                >
-                  {successMessage}
-                </Alert>
-              </AlertWrapper>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="wait">
-            <LoginForm 
-              key={isSignup ? 'signup' : 'login'}
-              onSubmit={handleSubmit(onSubmit)}
-              variants={formVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
+        <AnimatePresence mode="wait">
+          {errorMessage && (
+            <AlertWrapper
+              key="error"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
             >
-              <FormTitle
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
+              <Alert 
+                severity="error" 
+                onClose={() => setErrorMessage(null)} 
+                style={{ width: '100%' }}
               >
-                {isSignup ? 'Criar Conta' : 'Bem-vindo de volta!'}
-              </FormTitle>
-              
-              {isSignup && (
-                <MotionBox width="100%" variants={itemVariants}>
-                  <StyledTextField
-                    label="Como gostaria de ser chamado?"
-                    variant="outlined"
-                    placeholder="Digite seu nome"
-                    fullWidth
-                    {...register('name', { required: 'Nome é obrigatório' })}
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: currentTheme.primary }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </MotionBox>
-              )}
-              
-              <MotionBox width="100%" variants={itemVariants}>
+                {errorMessage}
+              </Alert>
+            </AlertWrapper>
+          )}
+
+          {successMessage && (
+            <AlertWrapper
+              key="success"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Alert 
+                severity="success" 
+                style={{ width: '100%' }}
+              >
+                {successMessage}
+              </Alert>
+            </AlertWrapper>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          <LoginForm 
+            key={isSignup ? 'signup' : 'login'}
+            onSubmit={handleSubmit(onSubmit)}
+            variants={formVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <FormTitle
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {isSignup ? 'Criar Conta' : 'Bem-vindo de volta!'}
+            </FormTitle>
+            
+            {isSignup && (
+              <motion.div width="100%" variants={itemVariants}>
                 <StyledTextField
-                  label="Email"
+                  label="Como gostaria de ser chamado?"
                   variant="outlined"
-                  placeholder="Digite seu email"
+                  placeholder="Digite seu nome"
                   fullWidth
-                  {...register('email', {
-                    required: 'Email é obrigatório',
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Email inválido',
-                    }
-                  })}
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
+                  {...register('name', { required: 'Nome é obrigatório' })}
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Email sx={{ color: currentTheme.primary }} />
+                        <Person />
                       </InputAdornment>
                     ),
                   }}
                 />
-              </MotionBox>
-              
-              <MotionBox width="100%" variants={itemVariants}>
-                <StyledTextField
-                  label="Senha"
-                  variant="outlined"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Digite sua senha"
-                  fullWidth
-                  {...register('password', {
-                    required: 'Senha é obrigatória',
-                    minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres' },
-                  })}
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock sx={{ color: currentTheme.primary }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)}>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </MotionBox>
+              </motion.div>
+            )}
+            
+            <motion.div width="100%" variants={itemVariants}>
+              <StyledTextField
+                label="Email"
+                variant="outlined"
+                placeholder="Digite seu email"
+                fullWidth
+                {...register('email', {
+                  required: 'Email é obrigatório',
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: 'Email inválido',
+                  }
+                })}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </motion.div>
+            
+            <motion.div width="100%" variants={itemVariants}>
+              <StyledTextField
+                label="Senha"
+                variant="outlined"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Digite sua senha"
+                fullWidth
+                {...register('password', {
+                  required: 'Senha é obrigatória',
+                  minLength: { value: 8, message: 'A senha deve ter no mínimo 8 caracteres' },
+                })}
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </motion.div>
 
-              <MotionBox width="100%" variants={itemVariants}>
-                <ButtonsWrapper>
-                  <LoginButton 
-                    variant="contained" 
-                    type="submit" 
-                    disabled={isLoading}
-                    component={motion.button}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {isLoading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      isSignup ? 'Cadastrar' : 'Entrar'
-                    )}
-                  </LoginButton>
-                  <SignupButton 
-                    variant="contained" 
-                    onClick={() => setIsSignup(!isSignup)}
-                    disabled={isLoading}
-                    component={motion.button}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {isSignup ? 'Voltar' : 'Inscrever-se'}
-                  </SignupButton>
-                </ButtonsWrapper>
-              </MotionBox>
-              
-              <ToggleText
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-              >
-                {isSignup 
-                  ? 'Já possui uma conta? ' 
-                  : 'Não possui uma conta? '
-                }
-                <span onClick={() => setIsSignup(!isSignup)}>
-                  {isSignup ? 'Faça login' : 'Cadastre-se'}
-                </span>
-              </ToggleText>
-            </LoginForm>
-          </AnimatePresence>
-        </LeftPanel>
+            <motion.div width="100%" variants={itemVariants}>
+              <ButtonsWrapper>
+                <LoginButton 
+                  variant="contained" 
+                  type="submit" 
+                  disabled={isLoading}
+                  component={motion.button}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {isLoading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    isSignup ? 'Cadastrar' : 'Entrar'
+                  )}
+                </LoginButton>
+                <SignupButton 
+                  variant="contained" 
+                  onClick={() => setIsSignup(!isSignup)}
+                  disabled={isLoading}
+                  component={motion.button}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {isSignup ? 'Voltar' : 'Inscrever-se'}
+                </SignupButton>
+              </ButtonsWrapper>
+            </motion.div>
+            
+            <ToggleText
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              {isSignup 
+                ? 'Já possui uma conta? ' 
+                : 'Não possui uma conta? '
+              }
+              <span onClick={() => setIsSignup(!isSignup)}>
+                {isSignup ? 'Faça login' : 'Cadastre-se'}
+              </span>
+            </ToggleText>
+          </LoginForm>
+        </AnimatePresence>
+      </LeftPanel>
+      
+      <RightPanel
+        initial={{ x: 50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Círculos decorativos animados */}
+        <motion.div
+          variants={circleVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ 
+            width: '300px', 
+            height: '300px', 
+            top: '-50px', 
+            right: '-50px' 
+          }}
+        />
+        <motion.div
+          variants={circleVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+          style={{ 
+            width: '200px', 
+            height: '200px', 
+            bottom: '50px', 
+            left: '30px' 
+          }}
+        />
         
-        <RightPanel
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.7 }}
         >
-          {/* Círculos decorativos animados */}
-          <BackgroundCircle 
-            variants={circleVariants}
-            initial="hidden"
-            animate="visible"
+          <Typography 
+            variant="h3" 
+            component="h1" 
+            className="app-name" 
             style={{ 
-              width: '300px', 
-              height: '300px', 
-              top: '-50px', 
-              right: '-50px' 
+              marginBottom: '2rem',
+              fontWeight: 700,
+              textShadow: '0 2px 10px rgba(0,0,0,0.2)'
             }}
-          />
-          <BackgroundCircle 
-            variants={circleVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.3 }}
+          >
+            FlashQuiz
+          </Typography>
+        </motion.div>
+        
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.7 }}
+        >
+          <Typography 
+            variant="h5" 
             style={{ 
-              width: '200px', 
-              height: '200px', 
-              bottom: '50px', 
-              left: '30px' 
+              textAlign: 'center',
+              maxWidth: '80%',
+              margin: '0 auto',
+              lineHeight: 1.4
             }}
-          />
-          
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.7 }}
           >
-            <Typography 
-              variant="h3" 
-              component="h1" 
-              className="app-name" 
-              style={{ 
-                marginBottom: '2rem',
-                fontWeight: 700,
-                textShadow: '0 2px 10px rgba(0,0,0,0.2)'
-              }}
-            >
-              FlashQuiz
-            </Typography>
-          </motion.div>
-          
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
-          >
-            <Typography 
-              variant="h5" 
-              style={{ 
-                textAlign: 'center',
-                maxWidth: '80%',
-                margin: '0 auto',
-                lineHeight: 1.4
-              }}
-            >
-              Entre para acessar seus baralhos e quizzes
-            </Typography>
-          </motion.div>
+            Entre para acessar seus baralhos e quizzes
+          </Typography>
+        </motion.div>
 
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-            style={{ marginTop: '2rem' }}
-          >
-            <Lottie
-              loop
-              animationData={loginAnimation}
-              play
-              style={{ width: 150, height: 150 }}
-            />
-          </motion.div>
-        </RightPanel>
-      </LoginWrapper>
-    </ThemeProvider>
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
+          style={{ marginTop: '2rem' }}
+        >
+          <Lottie
+            loop
+            animationData={loginAnimation}
+            play
+            style={{ width: 150, height: 150 }}
+          />
+        </motion.div>
+      </RightPanel>
+    </LoginWrapper>
   );
 };
 

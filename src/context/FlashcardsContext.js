@@ -29,27 +29,22 @@ export const FlashcardsProvider = ({ children }) => {
           },
         },
       });
-    } else {
-      console.log('Token ou userId não disponível.');
     }
   }, [token, userId, fetchDecks]);
 
   useEffect(() => {
     if (data) {
-      
       setDecks(data.getAllDecksFromUser);
     }
   }, [data]);
 
   const updateCardMetrics = (deckId, cardId, correct, currentAttempt) => {
     if (!user) {
-      console.error("User not authenticated.");
       return;
     }
 
     const deck = decks.find((d) => d.id === deckId);
     if (!deck) {
-      console.error(`Deck com ID ${deckId} não encontrado.`);
       return;
     }
 
@@ -105,16 +100,10 @@ export const FlashcardsProvider = ({ children }) => {
       ...prevState,
       [deckId]: response,
     }));
-
-   
   };
 
-  /**
-   * Mapeia `userDeckResponses` para o formato correto antes de enviar a mutação GraphQL.
-   */
   const mapUserDeckResponses = () => {
     return Object.values(userDeckResponses).map((response) => {
-      // Pega apenas os 10 primeiros cartões (originais)
       const originalCards = response.selectedCardsIds.slice(0, 10);
       const originalMetrics = response.cardMetrics.filter(metric => 
         originalCards.includes(metric.cardId)
@@ -131,12 +120,7 @@ export const FlashcardsProvider = ({ children }) => {
     });
   };
 
-  /**
-   * Envia os dados processados para o backend via GraphQL Mutation.
-   */
   const submitResponse = async (finalResponse) => {
-    console.log('Preparando para enviar respostas...');
-
     try {
       const { data } = await saveDeckResponse({
         variables: { input: finalResponse }
@@ -146,10 +130,8 @@ export const FlashcardsProvider = ({ children }) => {
         throw new Error('Erro ao enviar respostas via GraphQL');
       }
 
-      console.log('Respostas enviadas com sucesso via GraphQL');
       return data;
     } catch (error) {
-      console.error('Erro ao enviar respostas:', error);
       throw error;
     } finally {
       resetSession();
@@ -158,20 +140,16 @@ export const FlashcardsProvider = ({ children }) => {
 
   const resetSession = () => {
     setUserDeckResponses({});
-    console.log('Session reset');
   };
 
-  // Função para buscar um deck pelo ID
   const getDeckById = (deckId) => {
     if (!decks || decks.length === 0) {
-      console.error('Nenhum deck disponível');
       return null;
     }
     
     const deck = decks.find(d => d.id === deckId);
     
     if (!deck) {
-      console.error(`Deck com ID ${deckId} não encontrado`);
       return null;
     }
     

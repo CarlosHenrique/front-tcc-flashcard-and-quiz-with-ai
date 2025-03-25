@@ -10,21 +10,18 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import ThemeToggle from './components/ThemeToggle';
 
 const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
-    background-color: ${({ theme }) => theme.colors.background};
-    color: ${({ theme }) => theme.colors.text};
+    background-color: #FFFFFF;
+    color: #000000;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: ${({ theme }) => theme.transitions.default};
   }
 
   * {
@@ -45,11 +42,8 @@ const App = () => {
   }
 
   return (
-    <ThemeProvider>
+    <>
       <GlobalStyle />
-      <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 1000 }}>
-        <ThemeToggle />
-      </div>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
@@ -89,7 +83,7 @@ const App = () => {
           }
         />
       </Routes>
-    </ThemeProvider>
+    </>
   );
 };
 

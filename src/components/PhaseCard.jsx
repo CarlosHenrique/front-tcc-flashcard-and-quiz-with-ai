@@ -177,6 +177,8 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
   
   // Função para navegar para o quiz
   const handleQuizClick = () => {
+    
+
     if (isLocked) {
       alert('Esta fase está bloqueada. Complete as fases anteriores para desbloquear.');
       return;
@@ -193,30 +195,11 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
       return;
     }
 
-    console.log('Navegando para o quiz com os seguintes dados:', {
-      deckId: deck.id,
-      quizId: quizzes[0].id,
-      deck: deck,
-      quiz: quizzes[0]
-    });
-    
-    navigate(`/quiz/${deck.id}/${quizzes[0].id}`, { 
-      state: { 
-        deck: {
-          id: deck.id,
-          title: deck.title,
-          description: deck.description,
-          isLocked: deck.isLocked,
-          isCompleted: deck.isCompleted,
-          score: deck.score,
-          progress: deck.progress
-        },
-        quiz: {
-          id: quizzes[0].id,
-          title: quizzes[0].title,
-          description: quizzes[0].description
-        }
-      }
+    console.log('Redirecionando para:', `/quiz/${deck.id}/${quizzes[0].id}`);
+    console.log('Estado passado:', { deck, quiz: quizzes[0] });
+
+    navigate(`/quiz/${deck.id}/${quizzes[0].id}`, {
+      state: { deck, quiz: quizzes[0] }
     });
   };
   

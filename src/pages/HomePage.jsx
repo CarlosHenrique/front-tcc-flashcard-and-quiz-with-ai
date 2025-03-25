@@ -407,26 +407,63 @@ const HomePage = () => {
       {/* Snackbar para reforçar a ação */}
       <Snackbar
         open={openSnackbar}
-        autoHideDuration={5000}
+        autoHideDuration={6000}
         onClose={() => setOpenSnackbar(false)}
-        message="Assista o vídeo para conhecer a plataforma!"
-        ContentProps={{
-          sx: {
-            background: '#5650F5',
-            fontWeight: 'medium'
-          }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        TransitionComponent={motion.div}
+        TransitionProps={{
+          initial: { y: 50, opacity: 0 },
+          animate: { y: 0, opacity: 1 },
+          exit: { y: 50, opacity: 0 },
+          transition: { type: "spring", stiffness: 300, damping: 25 }
         }}
-        action={
+      >
+        <Paper
+          elevation={6}
+          sx={{
+            minWidth: '300px',
+            padding: '12px 24px',
+            background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            borderRadius: '12px',
+            boxShadow: '0 8px 16px rgba(86, 80, 245, 0.2)'
+          }}
+        >
+          <PlayArrow sx={{ color: 'white' }} />
+          <Typography
+            variant="body1"
+            sx={{
+              color: 'white',
+              fontWeight: '500',
+              flex: 1,
+              '& span': {
+                fontWeight: '600',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 0.9
+                }
+              }
+            }}
+          >
+            <span onClick={() => setOpenModal(true)}>Clique aqui</span> para assistir o vídeo de apresentação!
+          </Typography>
           <IconButton
             size="small"
-            aria-label="close"
-            color="inherit"
             onClick={() => setOpenSnackbar(false)}
+            sx={{
+              color: 'white',
+              '&:hover': {
+                background: 'rgba(255, 255, 255, 0.1)'
+              }
+            }}
           >
             <Close fontSize="small" />
           </IconButton>
-        }
-      />
+        </Paper>
+      </Snackbar>
     </HomeWrapper>
   );
 };

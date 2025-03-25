@@ -81,6 +81,13 @@ const FlashCard = ({
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
+      onClick={() => {
+        // Só permite virar se o cartão não foi respondido ainda
+        if (!isAnswered) {
+          onFlip();
+        }
+      }}
+      style={{ cursor: isAnswered ? 'default' : 'pointer' }}
     >
       <div className="inner-card">
         <div className="front">
@@ -118,12 +125,21 @@ const FlashCard = ({
                     }} 
                   />
                 )}
-                <IconButton onClick={onInfoClick} style={{ color: 'white' }}>
+                <IconButton 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Impede que o clique se propague para o cartão
+                    onInfoClick();
+                  }} 
+                  style={{ color: 'white' }}
+                >
                   <InfoIcon />
                 </IconButton>
               </div>
               <IconButton 
-                onClick={onFlip} 
+                onClick={(e) => {
+                  e.stopPropagation(); // Impede que o clique se propague para o cartão
+                  onFlip();
+                }} 
                 style={{ color: 'white' }}
               >
                 <LoopIcon />
@@ -936,13 +952,13 @@ const ActionButton = styled(motion.button)`
 `;
 
 const FlashcardsPage = () => {
-  console.log("Renderizando FlashcardsPage..."); // Log para verificar re-renderizações
+  
   
   const location = useLocation();
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const { decks, getDeckById, updateCardMetrics, submitResponse, loading } = useFlashcards();
-  const { user } = useAuth();
+  const { decks, getDeckById, updateCardMetrics, submitResponse, loading, fetchDecks } = useFlashcards();
+  const { user, token } = useAuth();
   
   // Estado para armazenar o deck atual
   const [currentDeck, setCurrentDeck] = useState(null);
@@ -1038,7 +1054,7 @@ const FlashcardsPage = () => {
         revisit: false
       }));
       
-      console.log('Inicializando progresso:', initialProgress);
+     
       setProgress(initialProgress);
     };
     
@@ -1417,6 +1433,16 @@ const FlashcardsPage = () => {
     setMinutes(0);
     setSeconds(0);
     setIsStudyCompleted(false);
+    
+    // Recarregar dados do backend antes de navegar
+    fetchDecks({
+      variables: { id: user?.email },
+      context: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
     
     // Navegar para a página inicial
     navigate('/');

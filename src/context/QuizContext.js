@@ -24,20 +24,17 @@ export const QuizProvider = ({ children }) => {
   const [fetchQuiz, { data, called, loading: quizLoading, error: quizError }] = useLazyQuery(GET_QUIZ_BY_DECK_ASSOCIATED_ID, { 
     fetchPolicy: 'no-cache',
     onCompleted: (data) => {
-      console.log('Query do quiz completada:', data);
       if (data && data.getQuizFromUser) {
         setQuizData(data.getQuizFromUser);
         setQuizStartTime(new Date());
         setQuestionStartTime(new Date());
         setLoading(false);
       } else {
-        console.error('Dados do quiz não encontrados na resposta:', data);
         setError('Dados do quiz não encontrados');
         setLoading(false);
       }
     },
     onError: (error) => {
-      console.error('Erro ao buscar o quiz:', error);
       setError(error);
       setLoading(false);
     }
@@ -58,10 +55,7 @@ export const QuizProvider = ({ children }) => {
   });
 
   const loadQuiz = useCallback((deckId) => {
-    console.log('Iniciando carregamento do quiz para o deck:', deckId);
-    
     if (!deckId || !user?.email) {
-      console.error('Deck ID ou usuário não encontrado:', { deckId, userEmail: user?.email });
       setError('Deck ID ou usuário não encontrado');
       setLoading(false);
       return;
@@ -70,7 +64,6 @@ export const QuizProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     
-    console.log('Fazendo query para buscar o quiz...');
     fetchQuiz({ 
       variables: { 
         deckId, 
@@ -137,8 +130,6 @@ export const QuizProvider = ({ children }) => {
       questionMetrics,
       totalQuizTime,
     };
-
-    console.log('UserQuizResponse:', userQuizResponse);
 
     return userQuizResponse;
   };

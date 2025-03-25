@@ -4,6 +4,7 @@ import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Avatar, Toolti
 import { Settings, Logout, Person } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import mainLogo from '../assets/images/mainLogo.svg';
 
 // Estilos
@@ -56,11 +57,30 @@ const StyledMenuItem = styled(MenuItem)`
   }
 `;
 
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+  color: white;
+`;
+
+const UserName = styled(Typography)`
+  margin-right: 1rem;
+  font-weight: 500;
+`;
+
 const Header = () => {
   const navigate = useNavigate();
+  const { user, logout: authLogout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   
+  const getInitials = (email) => {
+    if (!email) return '?';
+    const name = email.split('@')[0];
+    return name.charAt(0).toUpperCase();
+  };
+
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -70,7 +90,7 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    // Lógica de logout aqui
+    authLogout();
     handleClose();
     navigate('/login');
   };
@@ -80,7 +100,6 @@ const Header = () => {
     navigate('/profile');
   };
 
- 
   const goToHome = () => {
     navigate('/');
   };
@@ -100,19 +119,7 @@ const Header = () => {
         </LogoContainer>
 
         <NavItems>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/dashboard')}
-              sx={{ 
-                fontWeight: 'bold',
-                marginRight: '1rem',
-                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
-              }}
-            >
-              Dashboard
-            </Button>
-          </motion.div>
+         
           
           <UserAvatar>
             <Tooltip title="Opções da conta">
@@ -126,10 +133,16 @@ const Header = () => {
                 }}
               >
                 <Avatar 
-                  alt="User" 
-                  src="/avatar.png"
-                  sx={{ width: 40, height: 40 }}
-                />
+                  sx={{ 
+                    width: 40, 
+                    height: 40,
+                    bgcolor: '#4540d6',
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {getInitials(user?.email)}
+                </Avatar>
               </IconButton>
             </Tooltip>
           </UserAvatar>
@@ -162,8 +175,6 @@ const Header = () => {
               <Person fontSize="small" color="primary" />
               <Typography variant="body1">Perfil</Typography>
             </StyledMenuItem>
-            
-           
             
             <StyledMenuItem onClick={handleLogout}>
               <Logout fontSize="small" color="error" />
