@@ -29,27 +29,22 @@ export const FlashcardsProvider = ({ children }) => {
           },
         },
       });
-    } else {
-      console.log('Token ou userId não disponível.');
     }
   }, [token, userId, fetchDecks]);
 
   useEffect(() => {
     if (data) {
-      
       setDecks(data.getAllDecksFromUser);
     }
   }, [data]);
 
   const updateCardMetrics = (deckId, cardId, correct, currentAttempt) => {
     if (!user) {
-      console.error("User not authenticated.");
       return;
     }
 
     const deck = decks.find((d) => d.id === deckId);
     if (!deck) {
-      console.error(`Deck com ID ${deckId} não encontrado.`);
       return;
     }
 
@@ -105,60 +100,60 @@ export const FlashcardsProvider = ({ children }) => {
       ...prevState,
       [deckId]: response,
     }));
-
-   
   };
 
-  /**
-   * Mapeia `userDeckResponses` para o formato correto antes de enviar a mutação GraphQL.
-   */
   const mapUserDeckResponses = () => {
-    return Object.values(userDeckResponses).map((response) => ({
-      userId: response.userId,
-      deckId: response.deckId,
-      selectedCardsIds: response.selectedCardsIds,
-      score: response.score,
-      cardMetrics: response.cardMetrics.map((metric) => ({
-        cardId: metric.cardId,
-        attempts: metric.attempts,
-        score: metric.score,
-        lastAttempt: metric.lastAttempt.toISOString(),
-        nextReviewDate: metric.nextReviewDate.toISOString(),
-      })),
-      date: response.date.toISOString(),
-    }));
+    return Object.values(userDeckResponses).map((response) => {
+      const originalCards = response.selectedCardsIds.slice(0, 10);
+      const originalMetrics = response.cardMetrics.filter(metric => 
+        originalCards.includes(metric.cardId)
+      );
+
+      return {
+        userId: response.userId,
+        deckId: response.deckId,
+        selectedCardsIds: originalCards,
+        score: response.score,
+        cardMetrics: originalMetrics,
+        date: response.date.toISOString(),
+      };
+    });
   };
 
-  /**
-   * Envia os dados processados para o backend via GraphQL Mutation.
-   */
-  const submitResponse = async () => {
-    console.log('Preparando para enviar respostas...');
-
-    const formattedResponses = mapUserDeckResponses();
-
-
+  const submitResponse = async (finalResponse) => {
     try {
       const { data } = await saveDeckResponse({
-        variables: { input: formattedResponses[0] }
+        variables: { input: finalResponse }
       });
 
       if (mutationError) {
         throw new Error('Erro ao enviar respostas via GraphQL');
       }
 
-      console.log('Respostas enviadas com sucesso via GraphQL');
+      return data;
     } catch (error) {
-      console.error('Erro ao enviar respostas:', error);
+      throw error;
+    } finally {
+      resetSession();
     }
-
-    resetSession();
-    return formattedResponses[0]
   };
 
   const resetSession = () => {
     setUserDeckResponses({});
-    console.log('Session reset');
+  };
+
+  const getDeckById = (deckId) => {
+    if (!decks || decks.length === 0) {
+      return null;
+    }
+    
+    const deck = decks.find(d => d.id === deckId);
+    
+    if (!deck) {
+      return null;
+    }
+    
+    return deck;
   };
 
   if (authLoading) {
@@ -170,7 +165,7 @@ export const FlashcardsProvider = ({ children }) => {
   }
 
   return (
-    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks }}>
+    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks, getDeckById }}>
       {children}
     </FlashcardsContext.Provider>
   );

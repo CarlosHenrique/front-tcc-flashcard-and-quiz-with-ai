@@ -25,8 +25,7 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     },
-    onError: (error) => {
-      console.error('⛔ Erro na verificação do token:', error);
+    onError: () => {
       logout();
       setLoading(false);
     },
@@ -45,32 +44,18 @@ export const AuthProvider = ({ children }) => {
     checkToken();
   }, [verifyToken, navigate]);
 
-
-  const login = (userData, authToken, userIdentifier, redirectTo = '/') => {
-    console.log('✅ Login bem-sucedido');
+  const login = (userData, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    setToken(authToken);
-    setUserId(userIdentifier);
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('userId', userIdentifier);
-    
-    setTimeout(() => {
-      navigate(redirectTo); // Verifica se o navigate realmente está sendo chamado
-    }, 100);
+    setToken(token);
   };
   
-  
   const logout = () => {
-    console.log('🚪 Realizando logout...');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setToken(null);
-    setUserId(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userId');
-    setTimeout(() => {
-      navigate('/login'); // 🔄 Redireciona para login após limpar o estado
-    }, 100);
   };
 
   return (

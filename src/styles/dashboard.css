@@ -1,0 +1,257 @@
+.dashboard-container {
+  padding: 2rem;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.dashboard-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+  height: 100%;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-title {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-subtitle {
+  color: #7f8c8d;
+  margin-bottom: 1rem;
+}
+
+.dashboard-stat {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #3498db;
+  margin: 0.5rem 0;
+}
+
+.dashboard-stat-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #ecf0f1;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.ranking-item:hover {
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.ranking-item:last-child {
+  border-bottom: none;
+}
+
+.ranking-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 1rem;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.ranking-avatar.top-3 {
+  border-color: #FFD700;
+}
+
+.ranking-info {
+  flex: 1;
+}
+
+.ranking-username {
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ranking-points {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ranking-position {
+  font-weight: 700;
+  color: #3498db;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.progress-table th {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.progress-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.progress-table tr:last-child td {
+  border-bottom: none;
+}
+
+.progress-table tr:hover {
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.date-picker-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background-color: #ecf0f1;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #3498db;
+  transition: width 0.3s ease-in-out;
+}
+
+.stats-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stats-icon {
+  font-size: 2rem;
+  color: #3498db;
+  margin-bottom: 1rem;
+}
+
+.stats-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0.5rem 0;
+}
+
+.stats-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .date-picker-container {
+    flex-direction: column;
+  }
+
+  .progress-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .stats-card {
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-stat {
+    font-size: 2rem;
+  }
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-card {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Temas de cores para diferentes fases */
+.phase-1 { color: #3498db; }
+.phase-2 { color: #2ecc71; }
+.phase-3 { color: #e74c3c; }
+.phase-4 { color: #f1c40f; }
+.phase-5 { color: #9b59b6; }
+
+/* Estilos para tooltips personalizados */
+.custom-tooltip {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Estilos para scrollbars personalizadas */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} 
