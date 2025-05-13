@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import { useFlashcards } from '../context/FlashcardsContext';
 import PracticeResultModal from '../components/PracticeResult';
 import { useAuth } from '../context/AuthContext';
+import Joyride from 'react-joyride';
 
 // Componentes
 const TimerComponent = ({ minutes, seconds }) => {
@@ -17,6 +18,7 @@ const TimerComponent = ({ minutes, seconds }) => {
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.5 }}
+      data-tour="timer-container"
     >
       <Timer style={{ color: '#5650F5', fontSize: '1.5rem' }} />
       <TimerText>
@@ -32,6 +34,7 @@ const ScoreComponent = ({ score }) => {
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.7 }}
+      data-tour="score-container"
     >
       <EmojiEvents style={{ color: '#5650F5', fontSize: '1.5rem' }} />
       <ScoreText>{score} pts</ScoreText>
@@ -47,6 +50,7 @@ const ActionButtonsComponent = ({ onHomeClick, onResetClick }) => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={onHomeClick}
+        data-tour="home-button"
       >
         <HomeIcon />
       </ActionButton>
@@ -56,6 +60,7 @@ const ActionButtonsComponent = ({ onHomeClick, onResetClick }) => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={onResetClick}
+        data-tour="reset-button"
       >
         <RefreshIcon />
       </ActionButton>
@@ -82,12 +87,12 @@ const FlashCard = ({
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
       onClick={() => {
-        // Só permite virar se o cartão não foi respondido ainda
         if (!isAnswered) {
           onFlip();
         }
       }}
       style={{ cursor: isAnswered ? 'default' : 'pointer' }}
+      data-tour="card"
     >
       <div className="inner-card">
         <div className="front">
@@ -127,7 +132,7 @@ const FlashCard = ({
                 )}
                 <IconButton 
                   onClick={(e) => {
-                    e.stopPropagation(); // Impede que o clique se propague para o cartão
+                    e.stopPropagation();
                     onInfoClick();
                   }} 
                   style={{ color: 'white' }}
@@ -137,7 +142,7 @@ const FlashCard = ({
               </div>
               <IconButton 
                 onClick={(e) => {
-                  e.stopPropagation(); // Impede que o clique se propague para o cartão
+                  e.stopPropagation();
                   onFlip();
                 }} 
                 style={{ color: 'white' }}
@@ -982,6 +987,80 @@ const FlashcardsPage = () => {
   // Novo estado para controlar se o estudo está concluído
   const [isStudyCompleted, setIsStudyCompleted] = useState(false);
   
+  // Adicione o estado para controlar a visibilidade do Paper de tutorial
+  const [showTutorialPaper, setShowTutorialPaper] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false);
+  
+  // Adicione o useEffect para verificar se é a primeira visita
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenFlashcardsTutorial');
+    console.log('Status do tutorial:', hasSeenTutorial);
+    if (hasSeenTutorial === 'false' || !hasSeenTutorial) {
+      console.log('Mostrando paper do tutorial...');
+      setShowTutorialPaper(true);
+      setRunTutorial(false); // Não inicia o tutorial automaticamente
+    }
+  }, []);
+
+  // Função para marcar que o usuário já viu o tutorial
+  const handleTutorialComplete = () => {
+    console.log('Tutorial completo, salvando no localStorage...');
+    localStorage.setItem('hasSeenFlashcardsTutorial', 'true');
+    setShowTutorialPaper(false);
+    setRunTutorial(false);
+  };
+
+  // Função para iniciar o tutorial
+  const handleStartTutorial = () => {
+    setShowTutorialPaper(false); // Esconde o Paper
+    setRunTutorial(true); // Inicia o tutorial
+  };
+
+  // Passos do tutorial
+  const tutorialSteps = [
+    {
+      target: 'body',
+      content: 'Bem-vindo ao sistema de Flashcards! Aqui você pode praticar e melhorar seu conhecimento através de cartões de estudo interativos.',
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '[data-tour="card"]',
+      content: 'Este é o flashcard. Ele contém uma pergunta na frente e a resposta no verso. Para começar, clique no cartão para virá-lo e ver a resposta, você também pode ver um exemplo prático clicando no botão de informações.',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="timer-container"]',
+      content: 'O timer mostra quanto tempo você está levando para estudar este deck. Use isso para acompanhar seu progresso e melhorar sua velocidade.',
+      placement: 'left',
+    },
+    {
+      target: '[data-tour="score-container"]',
+      content: 'Sua pontuação é calculada assim: 10 pontos na primeira tentativa, 7 na segunda, 4 na terceira e 1 ponto nas tentativas seguintes.',
+      placement: 'right',
+    },
+    {
+      target: '[data-tour="home-button"]',
+      content: 'Este botão te leva de volta para a página inicial. Use-o quando quiser sair do estudo.',
+      placement: 'left',
+    },
+    {
+      target: '[data-tour="reset-button"]',
+      content: 'Este botão reinicia todo o seu progresso. Use-o se quiser começar o estudo novamente do zero.',
+      placement: 'left',
+    },
+    {
+      target: '[data-tour="progress"]',
+      content: 'A barra de progresso mostra seu avanço. Cartões verdes são acertos, vermelhos são erros. Clique nos pontos para navegar entre os cartões.',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="submit"]',
+      content: 'Quando terminar todos os cartões corretamente, clique aqui para concluir o estudo e ver seu resultado final.',
+      placement: 'left',
+    },
+  ];
+  
   // Modificar o useEffect do timer
   useEffect(() => {
     // Não iniciar o timer se o estudo estiver concluído
@@ -1093,72 +1172,6 @@ const FlashcardsPage = () => {
     };
   }, []);
 
-  // Modificar a função handleSubmitResponses
-  const handleSubmitResponses = async () => {
-    // Mostrar confetti para celebrar a conclusão
-    setShowConfetti(true);
-    confetti({
-      particleCount: 200,
-      spread: 100,
-      origin: { y: 0.6 }
-    });
-    
-    // Marcar o estudo como concluído
-    setIsStudyCompleted(true);
-    
-    // Usar o progresso atual para montar o objeto final
-    const finalResponse = {
-      userId: user?.email,
-      deckId: currentDeck.id,
-      selectedCardsIds: currentDeck.cards.slice(0, 10).map(card => card.id),
-      score: progressStats.totalPoints,
-      cardMetrics: currentDeck.cards.slice(0, 10).map((card, index) => {
-        const cardProgress = progress[index];
-        return {
-          cardId: card.id,
-          attempts: cardProgress?.attempts || 0,
-          score: cardProgress?.isCorrect ? 
-            (cardProgress.attempts === 1 ? 10 : 
-             cardProgress.attempts === 2 ? 7 : 
-             cardProgress.attempts === 3 ? 4 : 1) : 0,
-          lastAttempt: new Date().toISOString(),
-          nextReviewDate: new Date(Date.now() + (cardProgress?.attempts || 1) * 24 * 60 * 60 * 1000).toISOString()
-        };
-      }),
-      date: new Date().toISOString()
-    };
-    
-    try {
-      console.log('Enviando respostas para o servidor...', finalResponse);
-      // Submeter as respostas para o servidor
-      const response = await submitResponse(finalResponse);
-      console.log('Resposta enviada com sucesso:', response);
-      
-      // Atualizar a pontuação total e mostrar o modal de resultados
-      setTotalScore(finalResponse.score);
-      setShowResultModal(true);
-    } catch (error) {
-      console.error('Erro ao enviar respostas:', error);
-      // Mesmo com erro, mostramos o modal de resultados
-      setTotalScore(finalResponse.score);
-      setShowResultModal(true);
-    }
-    
-    // Limpar o confetti após alguns segundos
-    setTimeout(() => {
-      setShowConfetti(false);
-    }, 3000);
-  };
-  
-  // Função para virar o cartão
-  const handleFlipCard = () => {
-    // Verificar se o cartão atual já foi respondido
-    const isCurrentCardAnswered = progress && progress[currentCardIndex]?.answered || false;
-    
-    if (isCurrentCardAnswered) return; // Não permite virar cartões já respondidos
-    setFlipped(prev => !prev);
-  };
-  
   // Função para marcar cartão como correto
   const handleMarkCorrect = () => {
     // Verificar se o cartão atual já foi respondido
@@ -1173,13 +1186,18 @@ const FlashcardsPage = () => {
     const currentAttempts = (progress[currentCardIndex]?.attempts || 0) + 1;
     
     // Calcula a pontuação com base no número de tentativas
-    let pointsEarned = 1; // Valor padrão para 4 ou mais tentativas
-    if (currentAttempts === 1) {
-      pointsEarned = 10; // Primeira tentativa
-    } else if (currentAttempts === 2) {
-      pointsEarned = 7;  // Segunda tentativa
-    } else if (currentAttempts === 3) {
-      pointsEarned = 4;  // Terceira tentativa
+    let pointsEarned = 0;
+    // Só adiciona pontos se for um dos cartões originais (primeiros 10)
+    if (currentCardIndex < 10) {
+      if (currentAttempts === 1) {
+        pointsEarned = 10; // Primeira tentativa
+      } else if (currentAttempts === 2) {
+        pointsEarned = 7;  // Segunda tentativa
+      } else if (currentAttempts === 3) {
+        pointsEarned = 4;  // Terceira tentativa
+      } else {
+        pointsEarned = 1;  // Tentativas seguintes
+      }
     }
     
     console.log(`Acerto na tentativa ${currentAttempts}: ${pointsEarned} pontos`);
@@ -1541,23 +1559,178 @@ const FlashcardsPage = () => {
     console.log('Estatísticas:', progressStats);
   }
 
+  // Modificar a função handleSubmitResponses para garantir consistência na pontuação
+  const handleSubmitResponses = async () => {
+    // Mostrar confetti para celebrar a conclusão
+    setShowConfetti(true);
+    confetti({
+      particleCount: 200,
+      spread: 100,
+      origin: { y: 0.6 }
+    });
+    
+    // Marcar o estudo como concluído
+    setIsStudyCompleted(true);
+    
+    // Calcular a pontuação final considerando apenas os cartões originais
+    const finalScore = progress.slice(0, 10).reduce((total, card, index) => {
+      if (card.answered && card.isCorrect) {
+        const attempts = card.attempts || 1;
+        if (attempts === 1) return total + 10;
+        if (attempts === 2) return total + 7;
+        if (attempts === 3) return total + 4;
+        return total + 1;
+      }
+      return total;
+    }, 0);
+    
+    // Atualizar a pontuação atual para corresponder à pontuação final
+    setCurrentScore(finalScore);
+    
+    // Usar o progresso atual para montar o objeto final
+    const finalResponse = {
+      userId: user?.email,
+      deckId: currentDeck.id,
+      selectedCardsIds: currentDeck.cards.slice(0, 10).map(card => card.id),
+      score: finalScore,
+      cardMetrics: currentDeck.cards.slice(0, 10).map((card, index) => {
+        const cardProgress = progress[index];
+        return {
+          cardId: card.id,
+          attempts: cardProgress?.attempts || 0,
+          score: cardProgress?.isCorrect ? 
+            (cardProgress.attempts === 1 ? 10 : 
+             cardProgress.attempts === 2 ? 7 : 
+             cardProgress.attempts === 3 ? 4 : 1) : 0,
+          lastAttempt: new Date().toISOString(),
+          nextReviewDate: new Date(Date.now() + (cardProgress?.attempts || 1) * 24 * 60 * 60 * 1000).toISOString()
+        };
+      }),
+      date: new Date().toISOString()
+    };
+    
+    try {
+      console.log('Enviando respostas para o servidor...', finalResponse);
+      // Submeter as respostas para o servidor
+      const response = await submitResponse(finalResponse);
+      console.log('Resposta enviada com sucesso:', response);
+      
+      // Atualizar a pontuação total e mostrar o modal de resultados
+      setTotalScore(finalScore);
+      setShowResultModal(true);
+    } catch (error) {
+      console.error('Erro ao enviar respostas:', error);
+      // Mesmo com erro, mostramos o modal de resultados
+      setTotalScore(finalScore);
+      setShowResultModal(true);
+    }
+    
+    // Limpar o confetti após alguns segundos
+    setTimeout(() => {
+      setShowConfetti(false);
+    }, 3000);
+  };
+
   return (
     <FlashcardsContainer>
       <Header />
+      {/* Tutorial Joyride */}
+      <Joyride
+        steps={tutorialSteps}
+        run={runTutorial}
+        continuous
+        showSkipButton
+        showProgress
+        styles={{
+          options: {
+            zIndex: 10000,
+            primaryColor: '#5650F5',
+            textColor: '#222',
+            backgroundColor: '#fff',
+          },
+        }}
+        locale={{
+          back: 'Voltar',
+          close: 'Fechar',
+          last: 'Finalizar',
+          next: 'Próximo',
+          skip: 'Pular',
+        }}
+        callback={data => {
+          if (data.status === 'finished' || data.status === 'skipped') {
+            handleTutorialComplete();
+          }
+        }}
+      />
       
-      {/* Partículas de fundo */}
-      {backgroundParticles.map(particle => (
-        <BackgroundParticle 
-          key={particle.id}
-          size={particle.size}
-          top={particle.top}
-          left={particle.left}
-          color={particle.color}
-          duration={particle.duration}
-        />
-      ))}
+      {/* Paper de Tutorial */}
+      <AnimatePresence>
+        {showTutorialPaper && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'fixed',
+              top: 20,
+              right: 20,
+              zIndex: 10001,
+            }}
+          >
+            <Paper
+              elevation={3}
+              sx={{
+                padding: 2,
+                maxWidth: 300,
+                background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
+                color: 'white',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Bem-vindo aos Flashcards!
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Vamos te mostrar como usar o sistema de flashcards para melhorar seus estudos.
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleTutorialComplete}
+                  sx={{
+                    color: 'white',
+                    borderColor: 'white',
+                    '&:hover': {
+                      borderColor: 'white',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  Pular
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleStartTutorial}
+                  sx={{
+                    backgroundColor: 'white',
+                    color: '#5650F5',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    },
+                  }}
+                >
+                  Começar Tutorial
+                </Button>
+              </Box>
+            </Paper>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      {/* Timer - simplificado, apenas para exibição */}
+      {/* Timer */}
       <TimerComponent minutes={minutes} seconds={seconds} />
       
       {/* Pontuação */}
@@ -1568,24 +1741,6 @@ const FlashcardsPage = () => {
         onHomeClick={handleShowExitDialog} 
         onResetClick={handleResetProgress} 
       />
-      
-      {/* Container lateral para o botão de conclusão */}
-      {progress.every(p => p.answered && p.isCorrect) && !progress.some(p => p.revisit) && (
-        <SideContainer
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <SubmitButton 
-            onClick={handleSubmitResponses}
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Celebration />
-            Concluir Estudo
-          </SubmitButton>
-        </SideContainer>
-      )}
       
       {/* Título do deck */}
       <motion.div
@@ -1603,26 +1758,50 @@ const FlashcardsPage = () => {
       </motion.div>
       
       {/* Cartão */}
-      <FlashCard 
-        card={currentCard}
-        flipped={flipped}
-        onFlip={handleFlipCard}
-        onMarkCorrect={handleMarkCorrect}
-        onMarkIncorrect={handleMarkIncorrect}
-        isAnswered={isCurrentCardAnswered}
-        isCorrect={isCurrentCardCorrect}
-        onInfoClick={() => setDialogOpen(true)}
-        attempts={progress && progress[currentCardIndex]?.attempts || 0}
-        revisit={progress && progress[currentCardIndex]?.revisit || false}
-      />
+      {currentCard && (
+        <FlashCard 
+          card={currentCard}
+          flipped={flipped}
+          onFlip={() => setFlipped(prev => !prev)}
+          onMarkCorrect={handleMarkCorrect}
+          onMarkIncorrect={handleMarkIncorrect}
+          isAnswered={isCurrentCardAnswered}
+          isCorrect={isCurrentCardCorrect}
+          onInfoClick={() => setDialogOpen(true)}
+          attempts={progress && progress[currentCardIndex]?.attempts || 0}
+          revisit={progress && progress[currentCardIndex]?.revisit || false}
+        />
+      )}
       
       {/* Barra de progresso */}
-      <ProgressBar 
-        stats={progressStats}
-        progress={progress}
-        currentIndex={currentCardIndex}
-        onDotClick={handleDotClick}
-      />
+      <div data-tour="progress">
+        <ProgressBar 
+          stats={progressStats}
+          progress={progress}
+          currentIndex={currentCardIndex}
+          onDotClick={handleDotClick}
+        />
+      </div>
+      
+      {/* Container lateral para o botão de conclusão */}
+      {progress.every(p => p.answered && p.isCorrect) && !progress.some(p => p.revisit) && (
+        <SideContainer
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div data-tour="submit">
+            <SubmitButton 
+              onClick={handleSubmitResponses}
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Celebration />
+              Concluir Estudo
+            </SubmitButton>
+          </div>
+        </SideContainer>
+      )}
       
       {/* Controles de navegação */}
       <NavigationControls 
@@ -1636,20 +1815,18 @@ const FlashcardsPage = () => {
         open={showResultModal} 
         onClose={() => {
           setShowResultModal(false);
-          handleReturnToHome(); // Não salva o progresso por padrão após concluir
+          handleReturnToHome();
         }}
         totalScore={totalScore} 
         timeSpent={formatTime()}
       />
       
-      {/* Diálogo de exemplo prático */}
       <ExampleDialog 
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         example={currentCard?.practiceExample}
       />
       
-      {/* Diálogo de confirmação para sair */}
       <ExitDialog 
         open={showExitDialog}
         onClose={handleCloseExitDialog}

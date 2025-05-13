@@ -5,6 +5,7 @@ import { PlayArrow, Close } from '@mui/icons-material';
 import ReactPlayer from 'react-player';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import Joyride, { STATUS } from 'react-joyride';
 import PhaseCarousel from '../components/PhaseCarousel';
 import Header from '../components/Header';
 import { useFlashcards } from '../context/FlashcardsContext';
@@ -89,16 +90,79 @@ const WelcomeMessage = styled(motion.div)`
   width: 100%;
 `;
 
-const VideoButton = styled(motion.div)`
+const WelcomePaper = styled(motion.div)`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(86, 80, 245, 0.2);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+`;
+
+const VideoIntroCard = styled(motion.div)`
   position: fixed;
   bottom: 20px;
   right: 20px;
   z-index: 100;
-  
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(86, 80, 245, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 320px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(86, 80, 245, 0.3);
+  }
+
   @media (max-width: 768px) {
     bottom: 15px;
     right: 15px;
+    max-width: 280px;
   }
+`;
+
+const VideoOptions = styled(Box)`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 101;
+`;
+
+const PlayIconWrapper = styled.div`
+  background: linear-gradient(45deg, #5650F5 30%, #7A75F7 90%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(86, 80, 245, 0.3);
 `;
 
 const ContentContainer = styled.div`
@@ -116,20 +180,85 @@ const HomePage = () => {
   // Estados
   const [openModal, setOpenModal] = useState(false);
   const [openMessage, setOpenMessage] = useState(true);
-  const [openSnackbar, setOpenSnackbar] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    return !hasSeenTutorial;
+  });
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+
+  const steps = [
+    {
+      target: 'body',
+      content: 'Bem-vindo à nossa plataforma de aprendizado! Vamos te guiar em uma rápida tour para você aproveitar ao máximo sua experiência.',
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '.video-button',
+      content: 'Comece assistindo ao vídeo introdutório da plataforma. Ele te dará uma visão geral de como tudo funciona!',
+      placement: 'left',
+    },
+    {
+      target: '.phase-carousel',
+      content: 'Aqui você encontrará todas as fases disponíveis. Cada fase segue uma sequência específica: primeiro assista ao vídeo da fase, depois pratique com os flashcards e por fim, teste seus conhecimentos no quiz.',
+      placement: 'bottom',
+    },
+    {
+      target: '.phase-carousel',
+      content: 'Para avançar para a próxima fase, você precisa atingir uma pontuação mínima de 70% no quiz. Não se preocupe, você pode tentar quantas vezes quiser!',
+      placement: 'bottom',
+    },
+    {
+      target: '.phase-carousel',
+      content: 'Ao completar cada atividade, você ganhará badges especiais! Colecione todos os badges de cada fase para mostrar seu progresso.',
+      placement: 'bottom',
+    },
+    {
+      target: '.phase-carousel',
+      content: 'Os badges são conquistados ao: completar o vídeo da fase, acertar 100% dos flashcards e atingir pontuação máxima no quiz. Boa sorte!',
+      placement: 'bottom',
+    }
+  ];
 
   useEffect(() => {
     fetchAllQuizzes();
   }, [fetchAllQuizzes]);
 
+  const handleStartTutorial = () => {
+    setShowWelcome(false);
+    setRunTutorial(true);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
+
+  const handleSkipTutorial = () => {
+    setShowWelcome(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
+
+  const handleOpenOptions = () => {
+    setShowOptionsModal(true);
+  };
+
+  const handleCloseOptions = () => {
+    setShowOptionsModal(false);
+  };
+
+  const handleJoyrideCallback = (data) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunTutorial(false);
+    }
+  };
+
   // Efeito para mostrar confetti na primeira visita
   useEffect(() => {
-    const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
     
-    if (!hasVisitedBefore) {
+    if (!hasSeenTutorial) {
       setShowConfetti(true);
-      localStorage.setItem('hasVisitedBefore', 'true');
+      localStorage.setItem('hasSeenTutorial', 'true');
       
       // Dispara o confetti
       const duration = 3 * 1000;
@@ -203,6 +332,29 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
+      <Joyride
+        steps={steps}
+        run={runTutorial}
+        continuous
+        showProgress
+        showSkipButton
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            primaryColor: '#5650F5',
+            zIndex: 10000,
+          },
+          tooltipContainer: {
+            textAlign: 'left',
+          },
+          buttonNext: {
+            backgroundColor: '#5650F5',
+          },
+          buttonBack: {
+            marginRight: 10,
+          },
+        }}
+      />
       <FloatingParticles />
       <Header />
       
@@ -237,6 +389,46 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
+        {/* Welcome Paper */}
+        <AnimatePresence>
+          {showWelcome && (
+            <WelcomePaper
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
+              <Typography variant="h5" sx={{ color: '#5650F5', fontWeight: 'bold', mb: 2 }}>
+                Bem-vindo à Plataforma!
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#666', mb: 3 }}>
+                Gostaria de fazer um tour guiado pela plataforma para conhecer todas as funcionalidades?
+              </Typography>
+              <ButtonGroup>
+                <Button
+                  variant="contained"
+                  onClick={handleStartTutorial}
+                  sx={{
+                    background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #4840e6 30%, #6965e7 90%)'
+                    }
+                  }}
+                >
+                  Começar Tour
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleSkipTutorial}
+                  sx={{ color: '#5650F5', borderColor: '#5650F5' }}
+                >
+                  Pular
+                </Button>
+              </ButtonGroup>
+            </WelcomePaper>
+          )}
+        </AnimatePresence>
+
         <WelcomeMessage
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -266,87 +458,93 @@ const HomePage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.5 }}
           style={{ width: '100%' }}
+          className="phase-carousel"
         >
           <PhaseCarousel decks={decks} quizzes={allQuizzes} />
         </motion.div>
       </ContentContainer>
 
-      {/* Balão de Mensagem */}
+      {/* Video Card */}
       <AnimatePresence>
         {openMessage && (
-          <motion.div
+          <VideoIntroCard
             initial={{ opacity: 0, y: 50, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.8 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            style={{
-              position: "fixed",
-              bottom: 80,
-              right: 20,
-              zIndex: 100,
-              maxWidth: '300px'
-            }}
+            onClick={handleOpenOptions}
+            className="video-button"
           >
-            <Paper
-              elevation={3}
-              sx={{
-                backgroundColor: "#5650F5",
-                color: "white",
-                padding: "15px 20px",
-                borderRadius: "12px",
-                display: "flex",
-                alignItems: "center",
-                boxShadow: "0 10px 20px rgba(86, 80, 245, 0.3)",
-                width: { xs: '250px', sm: '300px' }
-              }}
-            >
-              <Typography variant="body1" sx={{ flexGrow: 1, fontWeight: "medium" }}>
-                🎥 Veja como a plataforma funciona em poucos minutos!
+            <PlayIconWrapper>
+              <PlayArrow sx={{ color: 'white', fontSize: 28 }} />
+            </PlayIconWrapper>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#5650F5' }}>
+                Tutorial da Plataforma
               </Typography>
-              <IconButton
-                size="small"
-                sx={{ color: "white", marginLeft: 1 }}
-                onClick={() => setOpenMessage(false)}
-              >
-                <Close fontSize="small" />
-              </IconButton>
-            </Paper>
-          </motion.div>
+              <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
+                É seu primeiro acesso? Veja como funciona em poucos minutos
+              </Typography>
+            </Box>
+          </VideoIntroCard>
         )}
       </AnimatePresence>
 
-      {/* Botão de Vídeo */}
-      <VideoButton>
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <Tooltip title="Ver vídeo de apresentação" arrow>
+      {/* Modal de Opções */}
+      <Dialog
+        open={showOptionsModal}
+        onClose={handleCloseOptions}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          style: {
+            borderRadius: '16px',
+            padding: '24px',
+          }
+        }}
+      >
+        <DialogContent sx={{ textAlign: 'center', p: 3 }}>
+          <Typography variant="h6" sx={{ color: '#5650F5', fontWeight: 'bold', mb: 3 }}>
+            Como você prefere conhecer a plataforma?
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Button
+              variant="contained"
               onClick={() => {
                 setOpenModal(true);
-                setOpenSnackbar(true);
+                handleCloseOptions();
               }}
-              variant="contained"
+              startIcon={<PlayArrow />}
               sx={{
-                borderRadius: "50%",
-                width: { xs: 60, sm: 70 },
-                height: { xs: 60, sm: 70 },
-                boxShadow: "0 10px 20px rgba(86, 80, 245, 0.3)",
-                background: "linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)",
-                minWidth: 'unset',
-                "&:hover": { 
-                  background: "linear-gradient(45deg, #4840e6 30%, #6965e7 90%)" 
+                background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #4840e6 30%, #6965e7 90%)'
                 },
+                py: 1.5
               }}
             >
-              <PlayArrow fontSize="large" />
+              Assistir Vídeo Tutorial
             </Button>
-          </Tooltip>
-        </motion.div>
-      </VideoButton>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setRunTutorial(true);
+                handleCloseOptions();
+              }}
+              startIcon={<PlayArrow />}
+              sx={{
+                color: '#5650F5',
+                borderColor: '#5650F5',
+                py: 1.5
+              }}
+            >
+              Iniciar Tour Guiado
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal com o Vídeo */}
+      {/* Modal do Vídeo */}
       <Dialog 
         open={openModal} 
         onClose={() => setOpenModal(false)} 
@@ -357,7 +555,8 @@ const HomePage = () => {
             borderRadius: '16px',
             boxShadow: '0 24px 38px rgba(0,0,0,0.2)',
             overflow: 'hidden',
-            margin: '16px'
+            margin: '16px',
+            backgroundColor: '#000'
           }
         }}
       >
@@ -380,7 +579,12 @@ const HomePage = () => {
             <IconButton
               aria-label="Fechar vídeo"
               onClick={() => setOpenModal(false)}
-              sx={{ color: 'white' }}
+              sx={{ 
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
             >
               <Close />
             </IconButton>
@@ -392,7 +596,6 @@ const HomePage = () => {
             controls
             playing
             onEnded={() => {
-              // Mostrar confetti quando o vídeo terminar
               confetti({
                 particleCount: 100,
                 spread: 70,
@@ -403,67 +606,6 @@ const HomePage = () => {
           />
         </DialogContent>
       </Dialog>
-
-      {/* Snackbar para reforçar a ação */}
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        TransitionComponent={motion.div}
-        TransitionProps={{
-          initial: { y: 50, opacity: 0 },
-          animate: { y: 0, opacity: 1 },
-          exit: { y: 50, opacity: 0 },
-          transition: { type: "spring", stiffness: 300, damping: 25 }
-        }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            minWidth: '300px',
-            padding: '12px 24px',
-            background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            borderRadius: '12px',
-            boxShadow: '0 8px 16px rgba(86, 80, 245, 0.2)'
-          }}
-        >
-          <PlayArrow sx={{ color: 'white' }} />
-          <Typography
-            variant="body1"
-            sx={{
-              color: 'white',
-              fontWeight: '500',
-              flex: 1,
-              '& span': {
-                fontWeight: '600',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                '&:hover': {
-                  opacity: 0.9
-                }
-              }
-            }}
-          >
-            <span onClick={() => setOpenModal(true)}>Clique aqui</span> para assistir o vídeo de apresentação!
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => setOpenSnackbar(false)}
-            sx={{
-              color: 'white',
-              '&:hover': {
-                background: 'rgba(255, 255, 255, 0.1)'
-              }
-            }}
-          >
-            <Close fontSize="small" />
-          </IconButton>
-        </Paper>
-      </Snackbar>
     </HomeWrapper>
   );
 };
