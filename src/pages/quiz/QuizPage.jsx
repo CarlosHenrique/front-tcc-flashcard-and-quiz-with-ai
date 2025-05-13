@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button, Box, LinearProgress } from '@mui/material';
+import { Typography, Button, Box, LinearProgress, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useMutation } from '@apollo/client';
 import Header from '../../components/Header';
 import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle, TimerContainer, ActionButton, NavigationButton } from './QuizPageStyles';
@@ -15,6 +15,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import Joyride, { STATUS } from 'react-joyride';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const shuffleOptions = (options) => {
   const shuffledOptions = options
@@ -66,9 +68,61 @@ const QuizPage = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [showWelcomePaper, setShowWelcomePaper] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false);
+
+  const steps = [
+    {
+      target: '.question-badge',
+      content: 'Aqui você pode ver o tipo da questão que está respondendo.',
+      disableBeacon: true,
+    },
+    {
+      target: '.question-text',
+      content: 'Leia atentamente a pergunta antes de responder.',
+    },
+    {
+      target: '.options-wrapper',
+      content: 'Selecione uma ou mais opções dependendo do tipo da questão.',
+    },
+    {
+      target: '.action-buttons',
+      content: 'Use estes botões para limpar sua resposta ou enviá-la.',
+    },
+    {
+      target: '.progress-dots',
+      content: 'Acompanhe seu progresso através dos pontos. Você pode clicar neles para navegar entre as questões.',
+    },
+    {
+      target: '.navigation-buttons',
+      content: 'Use estes botões para navegar entre as questões.',
+    },
+    {
+      target: '.streak-info',
+      content: 'Mantenha sua sequência de acertos para ganhar multiplicadores de pontuação!',
+    }
+  ];
+
+  const handleJoyrideCallback = (data) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunTutorial(false);
+    }
+  };
 
   useEffect(() => {
-   
+    console.log('Verificando localStorage...');
+    const hasSeenWelcome = localStorage.getItem('hasSeenQuizWelcome');
+    console.log('hasSeenWelcome:', hasSeenWelcome);
+    
+    // Forçar a exibição do paper se o localStorage estiver vazio ou for 'false'
+    if (!hasSeenWelcome || hasSeenWelcome === 'false') {
+      console.log('Mostrando paper de boas-vindas');
+      setShowWelcomePaper(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!location.state) {
     
       navigate('/');
@@ -274,6 +328,27 @@ const QuizPage = () => {
     ? currentQuestion.answer
     : currentQuestion.answer.split(', ')) : [];
 
+  const handleStartTutorial = () => {
+    console.log('Iniciando tutorial...');
+    setShowWelcomePaper(false);
+    setRunTutorial(true);
+    localStorage.setItem('hasSeenQuizWelcome', 'true');
+  };
+
+  const handleSkipTutorial = () => {
+    console.log('Pulando tutorial...');
+    setShowWelcomePaper(false);
+    localStorage.setItem('hasSeenQuizWelcome', 'true');
+  };
+
+  // Função para resetar o tutorial (para testes)
+  const resetTutorial = () => {
+    console.log('Resetando tutorial...');
+    localStorage.setItem('hasSeenQuizWelcome', 'false');
+    setShowWelcomePaper(true);
+    setRunTutorial(false);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -291,9 +366,108 @@ const QuizPage = () => {
       {showConfetti && <Confetti />}
       <Header />
       
+      {/* Botão de teste - remover depois */}
+      <Button
+        onClick={resetTutorial}
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          zIndex: 10002,
+          backgroundColor: '#5650F5',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#7A75F7',
+          },
+        }}
+      >
+        Resetar Tutorial
+      </Button>
+
+      <AnimatePresence>
+        {showWelcomePaper && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'fixed',
+              top: 20,
+              right: 20,
+              zIndex: 10001,
+            }}
+          >
+            <Paper
+              elevation={3}
+              sx={{
+                padding: 2,
+                maxWidth: 300,
+                background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
+                color: 'white',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Bem-vindo ao Quiz!
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Vamos te mostrar como usar o sistema de quiz para testar seus conhecimentos.
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleSkipTutorial}
+                  sx={{
+                    color: 'white',
+                    borderColor: 'white',
+                    '&:hover': {
+                      borderColor: 'white',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  Pular
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleStartTutorial}
+                  sx={{
+                    backgroundColor: 'white',
+                    color: '#5650F5',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    },
+                  }}
+                >
+                  Começar Tutorial
+                </Button>
+              </Box>
+            </Paper>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Joyride
+        steps={steps}
+        run={runTutorial}
+        continuous
+        showProgress
+        showSkipButton
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            primaryColor: '#1976d2',
+            zIndex: 10000,
+          }
+        }}
+      />
+      
       <QuestionCard>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box className="streak-info" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <EmojiEventsIcon sx={{ color: '#FFD700' }} />
               <Typography variant="h6">Streak: {streak}</Typography>
@@ -311,11 +485,42 @@ const QuizPage = () => {
           </Box>
         </Box>
 
-        <QuestionBadge label={questionTypeMap[currentQuestion.type]} color="primary" />
-        <Typography variant="h5" sx={{ mb: 2, maxHeight: '150px', overflowY: 'auto' }}>
+        <QuestionBadge className="question-badge" label={questionTypeMap[currentQuestion.type]} color="primary" />
+        <Typography 
+          className="question-text" 
+          variant="h5" 
+          sx={{ 
+            mb: 2, 
+            maxHeight: '150px', 
+            overflowY: 'scroll',
+            overflowX: 'hidden',
+            padding: '8px',
+            position: 'relative',
+            display: 'block',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+              display: 'block',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'rgba(0, 0, 0, 0.1)',
+              borderRadius: '4px',
+              margin: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#5650F5',
+              borderRadius: '4px',
+              '&:hover': {
+                background: '#7A75F7',
+              },
+            },
+            msOverflowStyle: 'auto',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#5650F5 rgba(0, 0, 0, 0.1)',
+          }}
+        >
           {`${currentQuestionIndex + 1}. ${currentQuestion.question}`}
         </Typography>
-        <OptionsWrapper mt={3} sx={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <OptionsWrapper className="options-wrapper" mt={3} sx={{ maxHeight: '300px', overflowY: 'auto' }}>
           {currentQuestion.shuffledOptions && currentQuestion.shuffledOptions.map((option, index) => (
             <OptionButton
               key={index}
@@ -329,7 +534,7 @@ const QuizPage = () => {
         </OptionsWrapper>
         <BottomSection>
           {selectedOptions[currentQuestionIndex]?.length > 0 && !showAnswer && (
-            <>
+            <Box className="action-buttons">
               <ActionButton
                 variant="clear"
                 onClick={handleClear}
@@ -343,11 +548,11 @@ const QuizPage = () => {
               >
                 Enviar
               </ActionButton>
-            </>
+            </Box>
           )}
         </BottomSection>
       </QuestionCard>
-      <ProgressDots>
+      <ProgressDots className="progress-dots">
         {progress.map((p, index) => (
           <div
             key={index}
@@ -356,7 +561,7 @@ const QuizPage = () => {
           ></div>
         ))}
       </ProgressDots>
-      <ButtonWrapper>
+      <ButtonWrapper className="navigation-buttons">
         <NavigationButton
           onClick={() => handleDotClick(currentQuestionIndex - 1)}
           disabled={currentQuestionIndex === 0}
