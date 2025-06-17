@@ -10,6 +10,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './context/AuthContext';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -68,6 +71,17 @@ const App = () => {
         <Route
           path="/profile"
           element={user ? <PrivateRoute><BadgePage /></PrivateRoute> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordPage/>}
+        />
+ <Route path="/privacy-policy" element={<PrivacyPolicyPage/>}/>
+        
+<Route
+          path="/reset-password"
+          element={<ResetPasswordPage/>}
         />
 
         <Route

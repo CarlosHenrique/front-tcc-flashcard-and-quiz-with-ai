@@ -452,7 +452,51 @@ const LoginPage = () => {
                   ),
                 }}
               />
+              
             </motion.div>
+            {isSignup && (
+  <motion.div width="100%" variants={itemVariants} style={{ marginTop: '1rem' }}>
+    <label style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'flex-start' }}>
+      <input
+        type="checkbox"
+        {...register('acceptTerms', {
+          validate: value =>
+            !isSignup || value || 'Você precisa aceitar a política de privacidade.',
+        })}
+        style={{ marginRight: '8px', marginTop: '3px' }}
+      />
+      Ao se cadastrar, você concorda com a nossa&nbsp;
+      <span
+        style={{ color: '#5650F5', textDecoration: 'underline', cursor: 'pointer' }}
+        onClick={() => window.open('/privacy-policy', '_blank')}
+      >
+        Política de Privacidade
+      </span>
+      .
+    </label>
+    {errors.acceptTerms && (
+      <Typography variant="caption" color="error">
+        {errors.acceptTerms.message}
+      </Typography>
+    )}
+  </motion.div>
+)}
+            
+            <motion.div width="100%" variants={itemVariants}>
+ {!isSignup &&<Typography
+    style={{
+      fontSize: '0.85rem',
+      color: '#5650F5',
+      cursor: 'pointer',
+      marginTop: '-0.5rem',
+      marginBottom: '1rem',
+      alignSelf: 'flex-end',
+    }}
+    onClick={() => navigate('/forgot-password')}
+  >
+    Esqueceu sua senha?
+  </Typography>} 
+</motion.div>
 
             <motion.div width="100%" variants={itemVariants}>
               <ButtonsWrapper>
