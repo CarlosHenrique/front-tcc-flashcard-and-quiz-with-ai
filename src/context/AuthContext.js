@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLazyQuery } from '@apollo/client';
 import { VERIFY_TOKEN } from '../graphql/auth/queries';
 
@@ -11,6 +11,8 @@ export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+const publicPaths = ['/login', '/forgot-password', '/reset-password', '/privacy-policy'];
 
   const [verifyToken] = useLazyQuery(VERIFY_TOKEN, {
     fetchPolicy: 'network-only',
@@ -38,7 +40,9 @@ export const AuthProvider = ({ children }) => {
         await verifyToken();
       } else {
         setLoading(false);
-        navigate('/login');
+        if (!publicPaths.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     };
     checkToken();

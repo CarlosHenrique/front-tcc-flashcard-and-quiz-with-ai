@@ -17,3 +17,14 @@ export const SIGNUP_MUTATION = gql`
   }
 }
 `;
+export const FORGOT_PASSWORD_MUTATION = gql`
+  mutation ForgotPassword($input: ForgotPasswordInput!) {
+    forgotPassword(input: $input)
+  }
+`;
+
+export const RESET_PASSWORD_MUTATION = gql`
+  mutation ResetPassword($input: ResetPasswordInput!) {
+    resetPassword(input: $input)
+  }
+`;
