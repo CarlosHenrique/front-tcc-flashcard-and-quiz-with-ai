@@ -13,7 +13,7 @@ import { useAuth } from './context/AuthContext';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-
+import './index.css';
 const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
