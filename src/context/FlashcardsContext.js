@@ -10,162 +10,142 @@ export const useFlashcards = () => useContext(FlashcardsContext);
 
 export const FlashcardsProvider = ({ children }) => {
   const [decks, setDecks] = useState([]);
-  const [userDeckResponses, setUserDeckResponses] = useState({});
+  // `currentSessionMetrics` é simplificado aqui. A lógica de compilar as métricas
+  // para o payload final será movida para o `FlashcardsPage` antes de chamar `submitResponse`.
+  // Isso torna o contexto mais focado em fornecer o método de mutação.
+  const [currentSessionMetrics, setCurrentSessionMetrics] = useState({}); 
+
   const [saveDeckResponse, { loading: mutationLoading, error: mutationError }] = useMutation(SAVE_DECK_RESPONSE);
   const [fetchDecks, { data, loading, error }] = useLazyQuery(GET_ALL_DECKS, {
-    fetchPolicy: 'no-cache',
+    fetchPolicy: 'no-cache', // Sempre busca dados frescos para refletir o estado atual do usuário/decks
   });
 
   const { user, token, loading: authLoading } = useAuth();
   const userId = user?.email;
 
+  // Efeito para buscar os decks do usuário quando o token estiver disponível
   useEffect(() => {
-    if (token) {
+    if (token && userId) { // Garante que `token` e `userId` existam antes de buscar os decks
       fetchDecks({
         variables: { id: userId },
         context: {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`, // Inclui o token para autenticação
           },
         },
       });
     }
   }, [token, userId, fetchDecks]);
 
+  // Efeito para atualizar o estado `decks` quando os dados da query chegarem
   useEffect(() => {
     if (data) {
       setDecks(data.getAllDecksFromUser);
     }
   }, [data]);
 
-  const updateCardMetrics = (deckId, cardId, correct, currentAttempt) => {
-    if (!user) {
-      return;
-    }
-
-    const deck = decks.find((d) => d.id === deckId);
-    if (!deck) {
-      return;
-    }
-
-    const response = userDeckResponses[deckId] || {
-      userId,
-      deckId,
-      selectedCardsIds: [],
-      score: 0,
-      cardMetrics: [],
-      date: new Date(),
-    };
-
-    if (!response.selectedCardsIds.includes(cardId)) {
-      response.selectedCardsIds.push(cardId);
-    }
-
-    let cardMetrics = response.cardMetrics.find((metric) => metric.cardId === cardId);
-
-    if (!cardMetrics) {
-      cardMetrics = {
-        cardId,
-        attempts: 0,
-        score: 0,
-        lastAttempt: new Date(),
-        nextReviewDate: new Date(),
-      };
-      response.cardMetrics.push(cardMetrics);
-    }
-
-    cardMetrics.attempts += 1;
-    cardMetrics.lastAttempt = new Date();
-
-    if (correct) {
-      let attemptScore = 1;
-      if (cardMetrics.attempts === 1) attemptScore = 10;
-      else if (cardMetrics.attempts === 2) attemptScore = 7;
-      else if (cardMetrics.attempts === 3) attemptScore = 4;
-
-      cardMetrics.score += attemptScore;
-      response.score += attemptScore;
-    } else {
-      const currentCardIndex = deck.cards.findIndex((c) => c.id === cardId);
-      if (currentCardIndex !== -1) {
-        const randomIndex = Math.floor(Math.random() * (deck.cards.length - currentCardIndex - 1)) + currentCardIndex + 1;
-        deck.cards.splice(randomIndex, 0, deck.cards[currentCardIndex]);
+  // Esta função agora serve para atualizar o estado local da sessão,
+  // mas o payload completo para o backend será montado no `FlashcardsPage`.
+  // Ela é mais um "setter" de estado local para o FlashcardsPage controlar.
+  const updateCardMetrics = (deckId, cardMetric) => {
+    setCurrentSessionMetrics(prevMetrics => {
+      const existingDeckMetrics = prevMetrics[deckId] || { selectedCardsIds: [], cardMetrics: [] };
+      
+      // Adiciona o `cardId` ao array de IDs de cartões selecionados se ainda não estiver presente
+      if (!existingDeckMetrics.selectedCardsIds.includes(cardMetric.cardId)) {
+        existingDeckMetrics.selectedCardsIds.push(cardMetric.cardId);
       }
-    }
 
-    const baseInterval = correct ? cardMetrics.attempts : 1;
-    cardMetrics.nextReviewDate = new Date(Date.now() + baseInterval * 24 * 60 * 60 * 1000);
+      // Encontra o índice da métrica do cartão atual no array
+      const existingCardIndex = existingDeckMetrics.cardMetrics.findIndex(m => m.cardId === cardMetric.cardId);
+      
+      // Atualiza ou adiciona a métrica do card com os novos dados
+      if (existingCardIndex > -1) {
+        existingDeckMetrics.cardMetrics[existingCardIndex] = cardMetric;
+      } else {
+        existingDeckMetrics.cardMetrics.push(cardMetric);
+      }
 
-    setUserDeckResponses((prevState) => ({
-      ...prevState,
-      [deckId]: response,
-    }));
-  };
-
-  const mapUserDeckResponses = () => {
-    return Object.values(userDeckResponses).map((response) => {
-      const originalCards = response.selectedCardsIds.slice(0, 10);
-      const originalMetrics = response.cardMetrics.filter(metric => 
-        originalCards.includes(metric.cardId)
-      );
-
+      // Retorna o novo estado com as métricas atualizadas para o deck
       return {
-        userId: response.userId,
-        deckId: response.deckId,
-        selectedCardsIds: originalCards,
-        score: response.score,
-        cardMetrics: originalMetrics,
-        date: response.date.toISOString(),
+        ...prevMetrics,
+        [deckId]: existingDeckMetrics
       };
     });
   };
 
+  // Função para enviar a resposta final da sessão para o backend
   const submitResponse = async (finalResponse) => {
     try {
+      // O `finalResponse` já virá formatado corretamente do `FlashcardsPage`,
+      // contendo `userId`, `deckId`, `selectedCardsIds`, `totalSessionScore` e `cardMetrics`.
       const { data } = await saveDeckResponse({
-        variables: { input: finalResponse }
+        variables: { input: finalResponse },
+        context: {
+          headers: {
+            Authorization: `Bearer ${token}`, // **Importante:** Inclui o token para autenticação na mutação
+          },
+        },
       });
 
-      if (mutationError) {
-        throw new Error('Erro ao enviar respostas via GraphQL');
-      }
+        if (!data || !data.createUserDeckResponse) {
+      throw new Error('Resposta inválida da API: saveDeckResponse retornou vazio.');
+    }
 
       return data;
     } catch (error) {
-      throw error;
+      console.error('Erro ao enviar respostas no contexto:', error);
+      throw error; // Propaga o erro para o componente que chamou `submitResponse`
     } finally {
-      resetSession();
+      resetSession(); // Sempre reseta a sessão após tentar submeter, mesmo em caso de erro
     }
   };
 
+  // Função para resetar o estado das métricas da sessão atual
   const resetSession = () => {
-    setUserDeckResponses({});
+    setCurrentSessionMetrics({}); // Limpa as métricas da sessão atual
   };
 
+  // Função para buscar um deck pelo ID dentro do estado `decks`
   const getDeckById = (deckId) => {
     if (!decks || decks.length === 0) {
       return null;
     }
-    
+
     const deck = decks.find(d => d.id === deckId);
-    
+
     if (!deck) {
       return null;
     }
-    
+
     return deck;
   };
 
+  // Renderiza um indicador de carregamento ou mensagem de autenticação enquanto os dados do usuário estão sendo carregados
   if (authLoading) {
-    return <div>Carregando...</div>;
+    return <div>Carregando autenticação...</div>;
   }
 
+  // Se o usuário não estiver autenticado, exibe uma mensagem
   if (!user || !token) {
-    return <div>Usuário não autenticado. Por favor, faça login.</div>;
+    return <div>Usuário não autenticado. Por favor, faça login para usar os flashcards.</div>;
   }
 
   return (
-    <FlashcardsContext.Provider value={{ decks, submitResponse, updateCardMetrics, resetSession, loading, error, fetchDecks, getDeckById }}>
+    <FlashcardsContext.Provider
+      value={{
+        decks,
+        submitResponse,
+        updateCardMetrics,
+        resetSession,
+        loading, // Estado de carregamento das queries Apollo
+        error,   // Erros das queries Apollo
+        fetchDecks,
+        getDeckById,
+        // `currentSessionMetrics` não é exposto diretamente, pois o `FlashcardsPage` gerencia o seu estado
+        // e apenas chama `updateCardMetrics` para registrá-lo.
+      }}
+    >
       {children}
     </FlashcardsContext.Provider>
   );

@@ -34,6 +34,7 @@
     "react-scripts": "5.0.1",
     "react-slick": "^0.30.2",
     "slick-carousel": "^1.8.1",
+    "sonner": "^2.0.5",
     "stream-browserify": "^3.0.0",
     "styled-components": "^6.1.11",
     "util": "^0.12.5",

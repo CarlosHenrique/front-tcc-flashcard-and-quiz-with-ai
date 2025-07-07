@@ -8,6 +8,7 @@ export const GET_ALL_DECKS = gql`
     title
     imageUrl
     videoUrl
+    nextDeckReviewDate
     theme
     cards{
       id

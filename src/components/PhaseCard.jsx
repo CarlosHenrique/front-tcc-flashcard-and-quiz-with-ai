@@ -7,6 +7,7 @@ import { Lock, CheckCircle, PlayArrow, Close, School, QuestionAnswer, VideoLibra
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
+import { AccessTime } from '@mui/icons-material';
 
 // Estilos
 const StyledCard = styled(motion(Card))`
@@ -195,8 +196,7 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
       return;
     }
 
-    console.log('Redirecionando para:', `/quiz/${deck.id}/${quizzes[0].id}`);
-    console.log('Estado passado:', { deck, quiz: quizzes[0] });
+
 
     navigate(`/quiz/${deck.id}/${quizzes[0].id}`, {
       state: { deck, quiz: quizzes[0] }
@@ -230,6 +230,42 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
       onClick();
     }
   };
+const formatBrazilianDateTime = (isoDate) => {
+  if (!isoDate) return null;
+  const date = new Date(isoDate);
+  return date.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit"
+  });
+};
+
+const reviewDate = deck.nextDeckReviewDate;
+const now = new Date();
+const reviewTime = reviewDate ? new Date(reviewDate) : null;
+
+let reviewStatus = 'default';
+let reviewLabel = 'Aguardando';
+
+if (reviewTime) {
+  const diffMs = reviewTime.getTime() - now.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  if (diffHours <= 0) {
+    reviewStatus = 'atrasado';
+    reviewLabel = '🔴 Revisão pendente';
+  } else if (diffHours <= 2) {
+    reviewStatus = 'proximo';
+    reviewLabel = '🟡 Revisar em breve';
+  } else {
+    reviewStatus = 'ok';
+    reviewLabel = `🟢 Revisar em ${formatBrazilianDateTime(reviewTime)}`;
+  }
+}
+
+
 
   return (
     <>
@@ -238,17 +274,22 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
         onClick={isActive ? undefined : handleCardClick}
         style={{ cursor: isActive ? 'default' : isLocked ? 'not-allowed' : 'pointer' }}
       >
-        {isLocked ? (
-          <StatusBadge isLocked={true}>
-            <Lock fontSize="small" />
-            Bloqueado
-          </StatusBadge>
-        ) : deck.isCompleted ? (
-          <StatusBadge isLocked={false}>
-            <CheckCircle fontSize="small" />
-            Completo
-          </StatusBadge>
-        ) : null}
+     {isLocked ? (
+  <StatusBadge isLocked={true}>
+    <Lock fontSize="small" />
+    Bloqueado
+  </StatusBadge>
+) : reviewTime ? (
+  <StatusBadge isLocked={false} style={{
+    backgroundColor:
+      reviewStatus === 'atrasado' ? '#f44336' :
+      reviewStatus === 'proximo' ? '#ff9800' :
+      '#4caf50'
+  }}>
+    <AccessTime fontSize="small" />
+    {reviewLabel}
+  </StatusBadge>
+) : null}
         
         <InfoTooltip size="small" onClick={handleInfoClick}>
           <Info fontSize="small" color="primary" />
@@ -272,7 +313,13 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
                   whileHover={!isLocked ? { scale: 1.03 } : {}} 
                   whileTap={!isLocked ? { scale: 0.97 } : {}}
                 >
-                  <Tooltip title={isLocked ? "Fase bloqueada" : "Acessar flashcards"}>
+                 <Tooltip title={
+  isLocked
+    ? "Fase bloqueada"
+    : reviewTime
+      ? `🧠 Próxima revisão: ${formatBrazilianDateTime(reviewTime)}`
+      : "Acessar flashcards"
+}>
                     <div style={{ width: '100%' }}>
                       <Button
                   variant="contained" 

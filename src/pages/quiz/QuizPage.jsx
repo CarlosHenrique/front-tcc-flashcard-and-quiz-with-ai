@@ -111,13 +111,10 @@ const QuizPage = () => {
   };
 
   useEffect(() => {
-    console.log('Verificando localStorage...');
     const hasSeenWelcome = localStorage.getItem('hasSeenQuizWelcome');
-    console.log('hasSeenWelcome:', hasSeenWelcome);
     
     // Forçar a exibição do paper se o localStorage estiver vazio ou for 'false'
     if (!hasSeenWelcome || hasSeenWelcome === 'false') {
-      console.log('Mostrando paper de boas-vindas');
       setShowWelcomePaper(true);
     }
   }, []);
@@ -329,21 +326,18 @@ const QuizPage = () => {
     : currentQuestion.answer.split(', ')) : [];
 
   const handleStartTutorial = () => {
-    console.log('Iniciando tutorial...');
     setShowWelcomePaper(false);
     setRunTutorial(true);
     localStorage.setItem('hasSeenQuizWelcome', 'true');
   };
 
   const handleSkipTutorial = () => {
-    console.log('Pulando tutorial...');
     setShowWelcomePaper(false);
     localStorage.setItem('hasSeenQuizWelcome', 'true');
   };
 
   // Função para resetar o tutorial (para testes)
   const resetTutorial = () => {
-    console.log('Resetando tutorial...');
     localStorage.setItem('hasSeenQuizWelcome', 'false');
     setShowWelcomePaper(true);
     setRunTutorial(false);
