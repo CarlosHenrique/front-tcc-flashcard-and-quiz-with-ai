@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, CircularProgress, Button, Dialog, Box, Divider } from '@mui/material';
+import { Typography, CircularProgress, Button, Dialog, Box } from '@mui/material';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { EmojiEvents, Timer, Star, Celebration, SentimentVeryDissatisfied } from '@mui/icons-material';
+import { EmojiEvents, Timer, Star, Celebration } from '@mui/icons-material';
 import confetti from 'canvas-confetti';
-
-// Animações
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-`;
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -124,12 +117,6 @@ const TrophyIcon = styled(motion.div)`
   animation: ${float} 3s infinite ease-in-out;
 `;
 
-const SadIcon = styled(motion.div)`
-  color: #f44336;
-  font-size: 3rem;
-  margin-bottom: 1rem;
-`;
-
 const StarContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -141,9 +128,8 @@ const StarIcon = styled(motion.div)`
   margin: 0 0.3rem;
 `;
 
-const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpent, passingScore = 70 }) => {
+const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpent }) => {
   const [loading, setLoading] = useState(true);
-  const [passed, setPassed] = useState(false);
   const [stars, setStars] = useState(0);
   const navigate = useNavigate();
 
@@ -151,32 +137,19 @@ const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpe
     if (open) {
       setLoading(true);
       setTimeout(() => {
-        const hasPassed = totalScore >= passingScore;
-        setPassed(hasPassed);
-        
-        // Calcular número de estrelas (1-3) com base na pontuação
         const starsEarned = Math.min(3, Math.max(1, Math.floor(totalScore / 30)));
         setStars(starsEarned);
-        
         setLoading(false);
-        
-        // Mostrar confetti se passou
-        if (hasPassed) {
-          confetti({
-            particleCount: 200,
-            spread: 100,
-            origin: { y: 0.6 }
-          });
-        }
+        confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
       }, 2000);
     }
-  }, [open, totalScore, passingScore]);
+  }, [open, totalScore]);
 
   const handleRetry = () => {
     onClose();
-    navigate('/'); // 🔄 Navega para a HomePage
+    navigate('/flashcards'); // ou próxima rota desejada
   };
-  
+
   const handleSaveAndExit = () => {
     if (onSaveAndExit) {
       onSaveAndExit();
@@ -191,11 +164,8 @@ const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpe
       {loading ? (
         <CenteredContainer>
           <motion.div
-            animate={{ 
-              rotate: 360,
-              scale: [1, 1.2, 1]
-            }}
-            transition={{ 
+            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+            transition={{
               rotate: { duration: 2, repeat: Infinity, ease: "linear" },
               scale: { duration: 1, repeat: Infinity, ease: "easeInOut" }
             }}
@@ -213,50 +183,32 @@ const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpe
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {passed ? "Parabéns!" : "Tente novamente!"}
+            Parabéns por concluir esta sessão!
           </StyledDialogTitle>
-          
+
           <StyledDialogContent>
             <CenteredContainer>
-              {passed ? (
-                <TrophyIcon>
-                  <Celebration style={{ fontSize: '4rem' }} />
-                </TrophyIcon>
-              ) : (
-                <SadIcon
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                >
-                  <SentimentVeryDissatisfied style={{ fontSize: '4rem' }} />
-                </SadIcon>
-              )}
-              
+              <TrophyIcon>
+                <Celebration style={{ fontSize: '4rem' }} />
+              </TrophyIcon>
+
               <Typography variant="h6" sx={{ fontWeight: 'medium', mb: 2 }}>
-                {passed
-                  ? "Você completou a fase com sucesso e pode avançar para a próxima etapa!"
-                  : "Não foi dessa vez. Continue praticando e tente novamente!"}
+                Você completou a fase de flashcards! Continue avançando para reforçar seu aprendizado.
               </Typography>
-              
-              {passed && (
-                <StarContainer>
-                  {[...Array(3)].map((_, i) => (
-                    <StarIcon
-                      key={i}
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ 
-                        scale: i < stars ? 1 : 0.5, 
-                        rotate: 0,
-                        opacity: i < stars ? 1 : 0.3
-                      }}
-                      transition={{ delay: i * 0.3, duration: 0.5 }}
-                    >
-                      <Star style={{ fontSize: '2.5rem' }} />
-                    </StarIcon>
-                  ))}
-                </StarContainer>
-              )}
-              
+
+              <StarContainer>
+                {[...Array(3)].map((_, i) => (
+                  <StarIcon
+                    key={i}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: i < stars ? 1 : 0.5, rotate: 0, opacity: i < stars ? 1 : 0.3 }}
+                    transition={{ delay: i * 0.3, duration: 0.5 }}
+                  >
+                    <Star style={{ fontSize: '2.5rem' }} />
+                  </StarIcon>
+                ))}
+              </StarContainer>
+
               <ScoreContainer>
                 <ScoreItem
                   initial={{ x: -50, opacity: 0 }}
@@ -268,7 +220,7 @@ const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpe
                   <ScoreValue>{totalScore}</ScoreValue>
                   <ScoreLabel>Pontuação</ScoreLabel>
                 </ScoreItem>
-                
+
                 <ScoreItem
                   initial={{ x: 50, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
@@ -280,37 +232,20 @@ const PracticeResultModal = ({ open, onClose, onSaveAndExit, totalScore, timeSpe
                   <ScoreLabel>Tempo</ScoreLabel>
                 </ScoreItem>
               </ScoreContainer>
-              
-              <StyledButton 
-                onClick={handleRetry}
+
+              <StyledButton
+                onClick={handleSaveAndExit}
                 whileHover={{ scale: 1.05, y: -5 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {passed ? "Avançar" : "Tentar novamente"}
+                Avançar para próxima fase
               </StyledButton>
             </CenteredContainer>
           </StyledDialogContent>
         </>
       )}
-      
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2, mb: 1 }}>
-        <Button 
-          variant="outlined" 
-          color="primary" 
-          onClick={handleSaveAndExit}
-          startIcon={<EmojiEvents />}
-        >
-          Salvar e Sair
-        </Button>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleRetry}
-          startIcon={<Celebration />}
-        >
-          Concluir
-        </Button>
-      </Box>
+
+     
     </StyledDialog>
   );
 };
