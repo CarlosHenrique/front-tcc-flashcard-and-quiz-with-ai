@@ -15,19 +15,21 @@ export const QuizProvider = ({ children }) => {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [quizStartTime, setQuizStartTime] = useState(null);
+  
+  // Renomeado para contextQuizStartTime para evitar confusão com o local no QuizPage
+  const [contextQuizStartTime, setContextQuizStartTime] = useState(null); 
   const [questionStartTime, setQuestionStartTime] = useState(null);
   const [questionTimes, setQuestionTimes] = useState([]);
   
   const { user } = useAuth();
 
-  const [fetchQuiz, { data, called, loading: quizLoading, error: quizError }] = useLazyQuery(GET_QUIZ_BY_DECK_ASSOCIATED_ID, { 
+  const [fetchQuiz, { data, loading: quizLoading, error: quizError }] = useLazyQuery(GET_QUIZ_BY_DECK_ASSOCIATED_ID, { 
     fetchPolicy: 'no-cache',
     onCompleted: (data) => {
       if (data && data.getQuizFromUser) {
         setQuizData(data.getQuizFromUser);
-        setQuizStartTime(new Date());
-        setQuestionStartTime(new Date());
+        // O quizStartTime agora é definido na função loadQuiz, não aqui
+        setQuestionStartTime(new Date()); // Define o início da primeira questão
         setLoading(false);
       } else {
         setError('Dados do quiz não encontrados');
@@ -54,7 +56,8 @@ export const QuizProvider = ({ children }) => {
     }
   });
 
-  const loadQuiz = useCallback((deckId) => {
+  // loadQuiz agora recebe 'initialStartTime' do QuizPage
+  const loadQuiz = useCallback((deckId, initialStartTime) => {
     if (!deckId || !user?.email) {
       setError('Deck ID ou usuário não encontrado');
       setLoading(false);
@@ -63,6 +66,7 @@ export const QuizProvider = ({ children }) => {
 
     setLoading(true);
     setError(null);
+    setContextQuizStartTime(initialStartTime || new Date()); // Garante que o start time é setado
     
     fetchQuiz({ 
       variables: { 
@@ -112,13 +116,26 @@ export const QuizProvider = ({ children }) => {
   const finalizeQuiz = (userId, quizId) => {
     const selectedQuestionIds = responses.map((resp) => resp.questionId);
     const score = responses.filter((resp) => resp.response.isCorrect).length;
-    const totalQuizTime = (new Date() - quizStartTime) / 1000;
-    const date = new Date();
-    const questionMetrics = responses.map((resp, index) => ({
+    
+    let finalTotalQuizTime = 0;
+    // Verifica se contextQuizStartTime é um Date object válido antes de subtrair
+    if (contextQuizStartTime instanceof Date && !isNaN(contextQuizStartTime.getTime())) {
+        finalTotalQuizTime = (new Date().getTime() - contextQuizStartTime.getTime()) / 1000;
+    } else {
+        console.error("QuizContext - ERROR: contextQuizStartTime is not a valid Date object or is null. Using sum of questionTimes as fallback.");
+        // Fallback: Soma dos tempos de cada questão se o tempo total não puder ser calculado
+        finalTotalQuizTime = questionTimes.reduce((acc, time) => acc + time, 0);
+    }
+    
+    console.log('Inside Context QUIZ START TIME IS:', contextQuizStartTime);
+    console.log('Inside Context TOTAL TIME IS:', finalTotalQuizTime);
+    
+    const date = new Date(); // Data da finalização
+    const questionMetrics = responses.map((resp) => ({ // Removido index, pois não é mais usado
       questionId: resp.questionId,
-      attempts: 1,
+      attempts: 1, // Assumindo 1 tentativa por questão no quiz
       correct: resp.response.isCorrect,
-      timeSpent: questionTimes[index],
+      timeSpent: resp.timeSpent, // Pegar o timeSpent já salvo na response do saveResponse
     }));
 
     const userQuizResponse = {
@@ -128,7 +145,7 @@ export const QuizProvider = ({ children }) => {
       score,
       date,
       questionMetrics,
-      totalQuizTime,
+      totalQuizTime: finalTotalQuizTime, // Este já estará em segundos
     };
 
     return userQuizResponse;
@@ -140,7 +157,7 @@ export const QuizProvider = ({ children }) => {
     setResponses([]);
     setLoading(false);
     setError(null);
-    setQuizStartTime(null);
+    setContextQuizStartTime(null);
     setQuestionStartTime(null);
     setQuestionTimes([]);
   };
@@ -156,8 +173,9 @@ export const QuizProvider = ({ children }) => {
         resetQuizContext,
         saveResponse,
         finalizeQuiz,
-        loading: loading || allQuizzesLoading,
-        error,
+        loading: loading || quizLoading || allQuizzesLoading, // Incluir quizLoading aqui
+        error: error || quizError || allQuizzesError, // Incluir quizError aqui
+        quizStartTime: contextQuizStartTime // Expor para o QuizPage, se necessário para UI
       }}
     >
       {children}

@@ -165,7 +165,7 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
   const progress = deck.progress || 0;
   
   // Verifica se o usuário completou os flashcards (score >= 70)
-  const hasCompletedFlashcards = deck.score >= 70;
+  const hasCompletedFlashcards = deck.score >=0;
   
   // Função para navegar para o deck de flashcards
   const handleFlashcardsClick = () => {
