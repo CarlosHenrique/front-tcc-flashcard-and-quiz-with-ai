@@ -9,7 +9,7 @@ export const GET_QUIZ_BY_DECK_ASSOCIATED_ID = gql`
     description
     deckAssociatedId
     ownerId
-    isLocked
+    
     score
     lastAccessed
     questions {
@@ -54,7 +54,7 @@ query getAllQuizzesFromUser($id: String!){
       category
     }
     ownerId
-    isLocked
+    
     score
     lastAccessed
   }

@@ -19,7 +19,7 @@ export const GET_ALL_DECKS = gql`
       difficulty
     }
     score
-    isLocked
+
     lastAccessed
   }
 }

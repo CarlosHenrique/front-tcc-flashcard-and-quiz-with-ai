@@ -9,7 +9,7 @@ import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
 import { AccessTime } from '@mui/icons-material';
 
-// Estilos
+// Estilos (mantidos os mesmos, pois não impactam a lógica)
 const StyledCard = styled(motion(Card))`
   width: 300px;
   height: 420px;
@@ -21,12 +21,12 @@ const StyledCard = styled(motion(Card))`
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
-  
+
   @media (max-width: 768px) {
     width: 280px;
     height: 400px;
   }
-  
+
   @media (min-width: 1200px) {
     width: 320px;
     height: 450px;
@@ -39,7 +39,7 @@ const CardImage = styled.div`
   background-size: cover;
   background-position: center;
   position: relative;
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -49,7 +49,7 @@ const CardImage = styled.div`
     height: 50px;
     background: linear-gradient(to top, white, transparent);
   }
-  
+
   @media (min-width: 1200px) {
     height: 160px;
   }
@@ -61,7 +61,7 @@ const CardContentWrapper = styled(CardContent)`
   flex-grow: 1;
   padding: 16px !important;
   position: relative;
-  
+
   @media (min-width: 1200px) {
     padding: 20px !important;
   }
@@ -72,7 +72,7 @@ const CardTitle = styled(Typography)`
   font-size: 1.4rem !important;
   margin-bottom: 0.5rem !important;
   color: #333;
-  
+
   @media (min-width: 1200px) {
     font-size: 1.6rem !important;
     margin-bottom: 0.7rem !important;
@@ -88,7 +88,7 @@ const CardDescription = styled(Typography)`
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  
+
   @media (min-width: 1200px) {
     font-size: 1rem !important;
     -webkit-line-clamp: 4;
@@ -97,7 +97,7 @@ const CardDescription = styled(Typography)`
 
 const ButtonsContainer = styled(Grid)`
   margin-top: auto;
-  
+
   @media (min-width: 1200px) {
     margin-top: 1rem;
   }
@@ -142,7 +142,7 @@ const InfoTooltip = styled(IconButton)`
   background-color: rgba(255, 255, 255, 0.8) !important;
   padding: 4px !important;
   z-index: 10;
-  
+
   &:hover {
     background-color: rgba(255, 255, 255, 1) !important;
   }
@@ -154,19 +154,19 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
   const { resetSession } = useFlashcards();
   const [openVideoModal, setOpenVideoModal] = useState(false);
   const [openInfoModal, setOpenInfoModal] = useState(false);
-  
-  // Verifica se o deck está bloqueado
+
+  // Verifica se o deck está bloqueado (lógica de travamento de fases mantida)
   const isLocked = deck.isLocked;
-  
+
   // Verifica se há quizzes associados a este deck
   const hasQuizzes = quizzes && quizzes.length > 0;
-  
+
   // Calcula o progresso do deck (simulado para demonstração)
   const progress = deck.progress || 0;
-  
-  // Verifica se o usuário completou os flashcards (score >= 70)
-  const hasCompletedFlashcards = deck.score >=0;
-  
+
+  // REMOVIDO: A variável hasCompletedFlashcards baseada em pontuação >= 70
+  // const hasCompletedFlashcards = deck.score >= 70; // Esta linha será removida ou modificada
+
   // Função para navegar para o deck de flashcards
   const handleFlashcardsClick = () => {
     if (isLocked) {
@@ -175,97 +175,92 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
     }
     navigate(`/flashcards/${deck.id}`);
   };
-  
+
   // Função para navegar para o quiz
   const handleQuizClick = () => {
-    
-
     if (isLocked) {
       alert('Esta fase está bloqueada. Complete as fases anteriores para desbloquear.');
       return;
     }
-    
+
     if (!hasQuizzes) {
       alert('Não há quizzes disponíveis para esta fase.');
       return;
     }
-    
-    // Verifica se o usuário completou os flashcards antes de permitir acesso ao quiz
-    if (!hasCompletedFlashcards) {
-      alert('Complete os flashcards primeiro para desbloquear o quiz!');
-      return;
-    }
 
-
+    // REMOVIDO: A verificação de hasCompletedFlashcards para liberar o quiz
+    // if (!hasCompletedFlashcards) {
+    //   alert('Complete os flashcards primeiro para desbloquear o quiz!');
+    //   return;
+    // }
 
     navigate(`/quiz/${deck.id}/${quizzes[0].id}`, {
       state: { deck, quiz: quizzes[0] }
     });
   };
-  
+
   // Função para abrir o modal de vídeo
   const handleVideoClick = () => {
     setOpenVideoModal(true);
   };
-  
+
   // Função para fechar o modal de vídeo
   const handleCloseVideo = () => {
     setOpenVideoModal(false);
   };
-  
+
   // Função para abrir o modal de informações
   const handleInfoClick = (e) => {
     e.stopPropagation();
     setOpenInfoModal(true);
   };
-  
+
   // Função para fechar o modal de informações
   const handleCloseInfo = () => {
     setOpenInfoModal(false);
   };
-  
+
   // Função para lidar com o clique no card
   const handleCardClick = () => {
     if (onClick) {
       onClick();
     }
   };
-const formatBrazilianDateTime = (isoDate) => {
-  if (!isoDate) return null;
-  const date = new Date(isoDate);
-  return date.toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "2-digit"
-  });
-};
 
-const reviewDate = deck.nextDeckReviewDate;
-const now = new Date();
-const reviewTime = reviewDate ? new Date(reviewDate) : null;
+  const formatBrazilianDateTime = (isoDate) => {
+    if (!isoDate) return null;
+    const date = new Date(isoDate);
+    return date.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit"
+    });
+  };
 
-let reviewStatus = 'default';
-let reviewLabel = 'Aguardando';
+  const reviewDate = deck.nextDeckReviewDate;
+  const now = new Date();
+  const reviewTime = reviewDate ? new Date(reviewDate) : null;
 
-if (reviewTime) {
-  const diffMs = reviewTime.getTime() - now.getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
+  let reviewStatus = 'default';
+  let reviewLabel = 'Aguardando';
 
-  if (diffHours <= 0) {
-    reviewStatus = 'atrasado';
-    reviewLabel = '🔴 Revisão pendente';
-  } else if (diffHours <= 2) {
-    reviewStatus = 'proximo';
-    reviewLabel = '🟡 Revisar em breve';
-  } else {
-    reviewStatus = 'ok';
-    reviewLabel = `🟢 Revisar em ${formatBrazilianDateTime(reviewTime)}`;
+  if (reviewTime) {
+    const diffMs = reviewTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (diffHours <= 0) {
+      reviewStatus = 'atrasado';
+      reviewLabel = '🔴 Revisão pendente';
+    } else if (diffHours <= 2) {
+      reviewStatus = 'proximo';
+      reviewLabel = '🟡 Revisar em breve';
+    } else {
+      reviewStatus = 'ok';
+      reviewLabel = `🟢 Revisar em ${formatBrazilianDateTime(reviewTime)}`;
+    }
   }
-}
-
-
 
   return (
     <>
@@ -274,55 +269,55 @@ if (reviewTime) {
         onClick={isActive ? undefined : handleCardClick}
         style={{ cursor: isActive ? 'default' : isLocked ? 'not-allowed' : 'pointer' }}
       >
-     {isLocked ? (
-  <StatusBadge isLocked={true}>
-    <Lock fontSize="small" />
-    Bloqueado
-  </StatusBadge>
-) : reviewTime ? (
-  <StatusBadge isLocked={false} style={{
-    backgroundColor:
-      reviewStatus === 'atrasado' ? '#f44336' :
-      reviewStatus === 'proximo' ? '#ff9800' :
-      '#4caf50'
-  }}>
-    <AccessTime fontSize="small" />
-    {reviewLabel}
-  </StatusBadge>
-) : null}
-        
+        {isLocked ? (
+          <StatusBadge isLocked={true}>
+            <Lock fontSize="small" />
+            Bloqueado
+          </StatusBadge>
+        ) : reviewTime ? (
+          <StatusBadge isLocked={false} style={{
+            backgroundColor:
+              reviewStatus === 'atrasado' ? '#f44336' :
+              reviewStatus === 'proximo' ? '#ff9800' :
+              '#4caf50'
+          }}>
+            <AccessTime fontSize="small" />
+            {reviewLabel}
+          </StatusBadge>
+        ) : null}
+
         <InfoTooltip size="small" onClick={handleInfoClick}>
           <Info fontSize="small" color="primary" />
         </InfoTooltip>
-        
+
         <CardImage image={deck.imageUrl || "https://source.unsplash.com/random/300x200/?study"} />
-        
+
         <CardContentWrapper>
           <CardTitle variant="h5">
             {deck.title || `Fase ${phaseNumber}`}
           </CardTitle>
-          
+
           <CardDescription variant="body2">
             {deck.description || "Explore este deck para aprender novos conceitos e testar seus conhecimentos."}
           </CardDescription>
-          
+
           {isActive && (
             <ButtonsContainer container spacing={1}>
               <Grid item xs={12}>
-                <StyledButton 
-                  whileHover={!isLocked ? { scale: 1.03 } : {}} 
+                <StyledButton
+                  whileHover={!isLocked ? { scale: 1.03 } : {}}
                   whileTap={!isLocked ? { scale: 0.97 } : {}}
                 >
-                 <Tooltip title={
-  isLocked
-    ? "Fase bloqueada"
-    : reviewTime
-      ? `🧠 Próxima revisão: ${formatBrazilianDateTime(reviewTime)}`
-      : "Acessar flashcards"
-}>
+                  <Tooltip title={
+                    isLocked
+                      ? "Fase bloqueada"
+                      : reviewTime
+                        ? `🧠 Próxima revisão: ${formatBrazilianDateTime(reviewTime)}`
+                        : "Acessar flashcards"
+                  }>
                     <div style={{ width: '100%' }}>
                       <Button
-                  variant="contained" 
+                        variant="contained"
                         fullWidth
                         onClick={handleFlashcardsClick}
                         disabled={isLocked}
@@ -349,27 +344,31 @@ if (reviewTime) {
                   </Tooltip>
                 </StyledButton>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <Tooltip title={
-                  isLocked 
-                    ? "Fase bloqueada" 
-                    : !hasQuizzes 
-                      ? "Não há quizzes disponíveis" 
-                      : !hasCompletedFlashcards 
-                        ? "Complete os flashcards primeiro" 
+                  isLocked
+                    ? "Fase bloqueada"
+                    : !hasQuizzes
+                      ? "Não há quizzes disponíveis"
+                      // REMOVIDO: Mensagem sobre completar flashcards
+                      // : !hasCompletedFlashcards
+                      //   ? "Complete os flashcards primeiro"
                         : "Acessar quiz"
                 }>
                   <div style={{ width: '100%' }}>
-                    <StyledButton 
-                      whileHover={!isLocked && hasQuizzes && hasCompletedFlashcards ? { scale: 1.03 } : {}} 
-                      whileTap={!isLocked && hasQuizzes && hasCompletedFlashcards ? { scale: 0.97 } : {}}
+                    <StyledButton
+                      // REMOVIDO: Condição hasCompletedFlashcards no whileHover
+                      whileHover={!isLocked && hasQuizzes ? { scale: 1.03 } : {}}
+                      // REMOVIDO: Condição hasCompletedFlashcards no whileTap
+                      whileTap={!isLocked && hasQuizzes ? { scale: 0.97 } : {}}
                     >
                       <Button
                         variant="outlined"
                         fullWidth
                         onClick={handleQuizClick}
-                        disabled={isLocked || !hasQuizzes || !hasCompletedFlashcards}
+                        // REMOVIDO: Condição !hasCompletedFlashcards no disabled
+                        disabled={isLocked || !hasQuizzes}
                         startIcon={<QuestionAnswer />}
                         sx={{
                           borderColor: '#5650F5',
@@ -393,7 +392,7 @@ if (reviewTime) {
                   </div>
                 </Tooltip>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <Tooltip title={!deck.videoUrl ? "Vídeo não disponível" : "Assistir vídeo introdutório"}>
                   <div style={{ width: '100%' }}>
@@ -424,16 +423,16 @@ if (reviewTime) {
                       </Button>
                     </StyledButton>
                   </div>
-            </Tooltip>
+                </Tooltip>
               </Grid>
             </ButtonsContainer>
           )}
-          
+
           {/* Indicador de progresso */}
           <ProgressIndicator progress={progress} />
-      </CardContentWrapper>
+        </CardContentWrapper>
       </StyledCard>
-      
+
       {/* Modal de Vídeo */}
       <Dialog
         open={openVideoModal}
@@ -449,12 +448,12 @@ if (reviewTime) {
         }}
       >
         <DialogContent sx={{ padding: 0, position: 'relative', overflow: 'hidden' }}>
-          <Box sx={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            padding: '1rem', 
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: '1rem',
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
             zIndex: 10,
             display: 'flex',
@@ -463,13 +462,13 @@ if (reviewTime) {
           }}>
             <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
               {deck.title || `Fase ${phaseNumber}`} - Vídeo Introdutório
-        </Typography>
+            </Typography>
             <IconButton
               aria-label="Fechar vídeo"
               onClick={handleCloseVideo}
               sx={{ color: 'white' }}
             >
-            <Close />
+              <Close />
             </IconButton>
           </Box>
           <ReactPlayer
@@ -482,7 +481,7 @@ if (reviewTime) {
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Modal de Informações */}
       <Dialog
         open={openInfoModal}
@@ -498,7 +497,7 @@ if (reviewTime) {
         }}
       >
         <DialogContent sx={{ padding: '24px' }}>
-          <Box sx={{ 
+          <Box sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -515,22 +514,22 @@ if (reviewTime) {
               <Close />
             </IconButton>
           </Box>
-          
+
           <Typography variant="body1" sx={{ mb: 2 }}>
             {deck.description || "Explore este deck para aprender novos conceitos e testar seus conhecimentos."}
           </Typography>
-          
+
           <Typography variant="h6" sx={{ color: '#5650F5', mt: 3, mb: 1 }}>
             Requisitos para completar esta fase:
           </Typography>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <School color="primary" sx={{ mr: 1 }} />
             <Typography variant="body1">
               Completar todos os flashcards
             </Typography>
           </Box>
-          
+
           {hasQuizzes && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <QuestionAnswer color="primary" sx={{ mr: 1 }} />
@@ -539,12 +538,12 @@ if (reviewTime) {
               </Typography>
             </Box>
           )}
-          
+
           {isLocked && (
-            <Box sx={{ 
-              mt: 3, 
-              p: 2, 
-              bgcolor: 'rgba(244, 67, 54, 0.1)', 
+            <Box sx={{
+              mt: 3,
+              p: 2,
+              bgcolor: 'rgba(244, 67, 54, 0.1)',
               borderRadius: '8px',
               border: '1px solid rgba(244, 67, 54, 0.3)'
             }}>
@@ -554,12 +553,12 @@ if (reviewTime) {
               </Typography>
             </Box>
           )}
-          
+
           {deck.isCompleted && (
-            <Box sx={{ 
-              mt: 3, 
-              p: 2, 
-              bgcolor: 'rgba(76, 175, 80, 0.1)', 
+            <Box sx={{
+              mt: 3,
+              p: 2,
+              bgcolor: 'rgba(76, 175, 80, 0.1)',
               borderRadius: '8px',
               border: '1px solid rgba(76, 175, 80, 0.3)'
             }}>
@@ -569,10 +568,10 @@ if (reviewTime) {
               </Typography>
             </Box>
           )}
-          
+
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={handleCloseInfo}
               sx={{
                 background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
