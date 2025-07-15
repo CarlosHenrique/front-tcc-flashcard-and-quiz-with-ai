@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button, Box, LinearProgress, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Typography, Button, Box, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'; // Removido LinearProgress, importado no QuizResultModal se necessário
 import { useMutation } from '@apollo/client';
 import Header from '../../components/Header';
 import { NextQuestionButton, BottomSection, OptionButton, OptionsWrapper, QuestionBadge, QuestionCard, QuizWrapper, ProgressDots, ButtonWrapper, StyledDialog, StyledDialogActions, StyledDialogContent, StyledDialogTitle, TimerContainer, ActionButton, NavigationButton } from './QuizPageStyles';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom'; // Removido Navigate
 import { useQuiz } from '../../context/QuizContext';
 import { useAuth } from '../../context/AuthContext';
 import { SAVE_USER_QUIZ_RESPONSE } from '../../graphql/quiz/mutations';
@@ -16,7 +16,10 @@ import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Joyride, { STATUS } from 'react-joyride';
+import QuizResultModal from '../../components/QuizResultModal'; // Certifique-se de que este caminho está correto!
 import { motion, AnimatePresence } from 'framer-motion';
+
+// --- Funções Auxiliares (fora do componente) ---
 
 const shuffleOptions = (options) => {
   const shuffledOptions = options
@@ -39,68 +42,60 @@ const questionTypeMap = {
   true_false: 'Verdadeiro ou Falso'
 };
 
+// Função de formatação de tempo (para o timer do cabeçalho)
+const formatSecondsToMMSS = (totalSeconds) => {
+  if (isNaN(totalSeconds) || totalSeconds < 0) {
+    return "00:00";
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
+  return `${formattedMinutes}:${formattedSeconds}`;
+};
+
+// --- Componente Principal QuizPage ---
 const QuizPage = () => {
   const [saveQuizUserResponse] = useMutation(SAVE_USER_QUIZ_RESPONSE);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-
 
   const { deck, quiz: quizFromState } = location.state || {};
-  const { loading, error, loadQuiz, saveResponse, finalizeQuiz, resetQuizContext } = useQuiz();
+  // Importando quizData, loading, error e quizStartTime do contexto.
+  const { loadQuiz, saveResponse, finalizeQuiz, resetQuizContext, quizData, loading: contextLoading, error: contextError, quizStartTime: contextQuizStartTime } = useQuiz();
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [progress, setProgress] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false); // Para o modal de feedback após cada resposta
   const [isCorrect, setIsCorrect] = useState(false);
   const [shuffledQuizData, setShuffledQuizData] = useState(null); 
-  const [startTime, setStartTime] = useState(null); 
-  const [resultDialogOpen, setResultDialogOpen] = useState(false);
-  const [userQuizResponse, setUserQuizResponse] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(false);
+  
+  // Estado local para o timer de exibição na UI
+  const [uiTimerTotalSeconds, setUiTimerTotalSeconds] = useState(0); 
+  
+  const [resultDialogOpen, setResultDialogOpen] = useState(false); // Para o modal de resultado final
+  const [userQuizResponse, setUserQuizResponse] = useState(null); // Dados do resultado final
+  const [showConfetti, setShowConfetti] = useState(false); // Confetti de acertos
   const [streak, setStreak] = useState(0);
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [questionStartTime, setQuestionStartTime] = useState(null);
-  const [totalTime, setTotalTime] = useState(0);
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [questionStartTime, setQuestionStartTime] = useState(null); // Tempo de início da questão atual (para o saveResponse)
+
+  // Para o tutorial inicial
   const [showWelcomePaper, setShowWelcomePaper] = useState(false);
   const [runTutorial, setRunTutorial] = useState(false);
 
+  // Steps do Joyride para o tutorial
   const steps = [
-    {
-      target: '.question-badge',
-      content: 'Aqui você pode ver o tipo da questão que está respondendo.',
-      disableBeacon: true,
-    },
-    {
-      target: '.question-text',
-      content: 'Leia atentamente a pergunta antes de responder.',
-    },
-    {
-      target: '.options-wrapper',
-      content: 'Selecione uma ou mais opções dependendo do tipo da questão.',
-    },
-    {
-      target: '.action-buttons',
-      content: 'Use estes botões para limpar sua resposta ou enviá-la.',
-    },
-    {
-      target: '.progress-dots',
-      content: 'Acompanhe seu progresso através dos pontos. Você pode clicar neles para navegar entre as questões.',
-    },
-    {
-      target: '.navigation-buttons',
-      content: 'Use estes botões para navegar entre as questões.',
-    },
-    {
-      target: '.streak-info',
-      content: 'Mantenha sua sequência de acertos para ganhar multiplicadores de pontuação!',
-    }
+    { target: '.question-badge', content: 'Aqui você pode ver o tipo da questão que está respondendo.', disableBeacon: true },
+    { target: '.question-text', content: 'Leia atentamente a pergunta antes de responder.' },
+    { target: '.options-wrapper', content: 'Selecione uma ou mais opções dependendo do tipo da questão.', placement: 'top' }, // Adicionado placement
+    { target: '.action-buttons', content: 'Use estes botões para limpar sua resposta ou enviá-la.', placement: 'top' }, // Adicionado placement
+    { target: '.progress-dots', content: 'Acompanhe seu progresso através dos pontos. Você pode clicar neles para navegar entre as questões.', placement: 'top' }, // Adicionado placement
+    { target: '.navigation-buttons', content: 'Use estes botões para navegar entre as questões.', placement: 'top' }, // Adicionado placement
+    { target: '.streak-info', content: 'Mantenha sua sequência de acertos para ganhar multiplicadores de pontuação!', placement: 'bottom' } // Adicionado placement
   ];
 
   const handleJoyrideCallback = (data) => {
@@ -110,66 +105,71 @@ const QuizPage = () => {
     }
   };
 
+  // Efeito para mostrar o papel de boas-vindas do tutorial
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('hasSeenQuizWelcome');
-    
-    // Forçar a exibição do paper se o localStorage estiver vazio ou for 'false'
     if (!hasSeenWelcome || hasSeenWelcome === 'false') {
       setShowWelcomePaper(true);
     }
   }, []);
 
+  // Efeito para carregar o quiz e inicializar estados
   useEffect(() => {
-    if (!location.state) {
-    
+    if (!location.state || !location.state.deck || !location.state.quiz) {
+      console.warn("QuizPage: Estado de localização inválido ou faltando dados do quiz. Redirecionando.");
       navigate('/');
       return;
     }
 
-    if (!location.state.deck || !location.state.quiz) {
-
-      navigate('/');
-      return;
+    // AQUI: Chame loadQuiz do contexto APENAS se o quiz ainda não foi carregado ou é um quiz diferente
+    // Passamos o new Date() para o contexto para que ele saiba o startTime correto da sessão.
+    if (!quizData || quizData.id !== location.state.quiz.id) {
+       console.log("QuizPage: Chamando loadQuiz do contexto com new Date().");
+       loadQuiz(location.state.deck.id, new Date()); // Passa o startTime inicial para o contexto
     }
-
    
-    setStartTime(new Date());
-    
-    // Usar os dados do quiz diretamente do location.state
-    const shuffledQuestions = location.state.quiz.questions.map((question) => ({
-      ...question,
-      shuffledOptions: shuffleOptions(question.options),
-    }));
-    
-    setSelectedOptions(Array(location.state.quiz.questions.length).fill([]));
-    setProgress(shuffledQuestions.map(() => ({ status: 'pending' })));
-    setShuffledQuizData({ ...location.state.quiz, questions: shuffledQuestions });
-    setQuestionStartTime(new Date());
-    
-  }, [location.state, navigate]);
+    // Quando quizData do contexto estiver pronto, preenche shuffledQuizData
+    if (quizData && quizData.questions && quizData.id === location.state.quiz.id) {
+        const shuffledQuestions = quizData.questions.map((question) => ({
+            ...question,
+            shuffledOptions: shuffleOptions(question.options),
+        }));
+        setShuffledQuizData({ ...quizData, questions: shuffledQuestions });
+        setSelectedOptions(Array(quizData.questions.length).fill([]));
+        setProgress(shuffledQuestions.map(() => ({ status: 'pending' })));
+        setQuestionStartTime(new Date()); // Inicia o timer da primeira questão
+    }
 
+  }, [location.state, navigate, loadQuiz, quizData]); // Adicionado quizData como dependência
+
+  // Efeito para resetar estado da questão ao navegar (próxima/anterior)
   useEffect(() => {
-    if (progress[currentQuestionIndex]) {
+    if (shuffledQuizData && progress[currentQuestionIndex]) {
       setShowAnswer(progress[currentQuestionIndex].status !== 'pending');
     }
     
-    setSelectedOptions(prevSelected => {
-      const newSelected = [...prevSelected];
-      newSelected[currentQuestionIndex] = [];
-      return newSelected;
-    });
+    if (progress[currentQuestionIndex] && progress[currentQuestionIndex].status === 'pending') {
+      setSelectedOptions(prevSelected => {
+        const newSelected = [...prevSelected];
+        newSelected[currentQuestionIndex] = [];
+        return newSelected;
+      });
+    }
 
-    setQuestionStartTime(new Date());
-  }, [currentQuestionIndex, progress]);
+    setQuestionStartTime(new Date()); // Reseta o timer da questão ao mudar
+  }, [currentQuestionIndex, progress, shuffledQuizData]);
 
+  // Efeito para o timer global do quiz (exibição na UI)
   useEffect(() => {
-    if (startTime) {
+    // uiTimerTotalSeconds usa o quizStartTime do CONTEXTO como base
+    if (contextQuizStartTime) {
       const interval = setInterval(() => {
-        setTotalTime(Math.floor((new Date() - startTime) / 1000));
+        // Calcula a diferença em segundos a partir do quizStartTime do contexto
+        setUiTimerTotalSeconds(Math.floor((new Date().getTime() - contextQuizStartTime.getTime()) / 1000));
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime]);
+  }, [contextQuizStartTime]); // Dependência do quizStartTime do contexto
 
   const handleOptionClick = (index) => {
     if (showAnswer) return;
@@ -195,23 +195,28 @@ const QuizPage = () => {
   const handleSend = () => {
     const currentQuestion = shuffledQuizData.questions[currentQuestionIndex];
     const selected = selectedOptions[currentQuestionIndex] || [];
-  
-    const correctAnswers = Array.isArray(currentQuestion.answer)
-      ? currentQuestion.answer
-      : currentQuestion.answer.split(', ');
-  
+
+    let correctAnswersArray;
+
+    if (currentQuestion.type === 'multiple_response') {
+      correctAnswersArray = Array.isArray(currentQuestion.answer)
+        ? currentQuestion.answer
+        : [currentQuestion.answer]; 
+    } else {
+      correctAnswersArray = [currentQuestion.answer];
+    }
+
     const correctIndexes = currentQuestion.shuffledOptions.map((option, index) =>
-      correctAnswers.includes(option.value) ? index : null
+      correctAnswersArray.includes(option.value) ? index : null
     ).filter(index => index !== null);
-  
+
     const isCorrect = selected.length === correctIndexes.length && selected.every(index => correctIndexes.includes(index));
-  
+
     const finalAnswer = selected.map(index => currentQuestion.shuffledOptions[index].value);
-  
+
     setIsCorrect(isCorrect);
     setOpenDialog(true);
 
-    // Atualiza streak e multiplicador
     if (isCorrect) {
       setStreak(prev => prev + 1);
       setScoreMultiplier(prev => Math.min(prev + 0.2, 2));
@@ -223,9 +228,9 @@ const QuizPage = () => {
       setStreak(0);
       setScoreMultiplier(1);
     }
-  
-    const timeSpent = (new Date() - questionStartTime) / 1000;
-  
+
+    const timeSpent = (new Date().getTime() - questionStartTime.getTime()) / 1000; // Garantir .getTime()
+
     saveResponse(currentQuestion.id, { 
       finalAnswer, 
       isCorrect, 
@@ -233,15 +238,19 @@ const QuizPage = () => {
       streak,
       scoreMultiplier 
     });
-  
+
     const newProgress = [...progress];
     newProgress[currentQuestionIndex] = { status: isCorrect ? 'correct' : 'incorrect' };
     setProgress(newProgress);
-  
+
     setShowAnswer(true);
   };
 
   const handleFinalizar = async () => {
+    if (!user || !shuffledQuizData) {
+      console.error("Dados do usuário ou quiz ausentes para finalizar.");
+      return;
+    }
     const quizResponse = finalizeQuiz(user.email, shuffledQuizData.id);
     
     try {
@@ -252,12 +261,13 @@ const QuizPage = () => {
             quizId: quizResponse.quizId,
             selectedQuestionIds: quizResponse.selectedQuestionIds,
             score: quizResponse.score,
-            totalQuizTime: quizResponse.totalQuizTime,
+            // Passar o totalQuizTime como segundos inteiros ou com 2 casas decimais para o backend
+            totalQuizTime: parseFloat(quizResponse.totalQuizTime.toFixed(2)), // Envia como float em segundos para o backend
             date: quizResponse.date.toISOString(),
             questionMetrics: quizResponse.questionMetrics.map(metric => ({
               questionId: metric.questionId,
               attempts: metric.attempts,
-              timeSpent: metric.timeSpent,
+              timeSpent: parseFloat(metric.timeSpent.toFixed(2)), // Garante que timeSpent também é float formatado
               correct: metric.correct,
             }))
           }
@@ -267,33 +277,41 @@ const QuizPage = () => {
       setUserQuizResponse(data.createUserQuizResponse);
       setResultDialogOpen(true);
     } catch (error) {
-      // Tratar erro aqui se necessário
+      console.error("Erro ao salvar a resposta final do quiz:", error);
+      setUserQuizResponse({
+        score: quizResponse.score,
+        totalQuizTime: quizResponse.totalQuizTime, // Passa o valor calculado do contexto para exibição no modal
+      });
+      setResultDialogOpen(true);
     }
   };
 
   const handleRestartQuiz = () => {
     resetQuizContext();
     setCurrentQuestionIndex(0);
+    setSelectedOptions([]);
+    setProgress(shuffledQuizData.questions.map(() => ({ status: 'pending' })));
+    setShowAnswer(false);
     setResultDialogOpen(false);
-    loadQuiz(deck.id); 
+    setStreak(0);
+    setScoreMultiplier(1);
+    setUiTimerTotalSeconds(0); // Reseta o timer da UI
+    loadQuiz(deck.id, new Date()); // Passa um novo startTime para o contexto
   };
 
   const handleCloseResultDialog = () => {
     setResultDialogOpen(false);
     if (userQuizResponse.score / shuffledQuizData.questions.length >= 0.7) {
-      navigate('/'); 
+      navigate('/');
     } else {
       handleRestartQuiz();
     }
   };
 
   const handleBackToHome = () => {
-    navigate('/'); // 🔄 Navega para a HomePage
-    setTimeout(() => {
-    
-    }, 100); // Pequeno delay para garantir que a navegação acontece antes do reload
+    resetQuizContext();
+    navigate('/');
   };
-
 
   const handleClear = () => {
     setSelectedOptions(prevSelected => {
@@ -301,12 +319,11 @@ const QuizPage = () => {
       newSelected[currentQuestionIndex] = [];
       return newSelected;
     });
-    setShowAnswer(false);
   };
 
   const handleDotClick = (index) => {
-    setCurrentQuestionIndex(index);
-    if (progress[index]) {
+    if (progress[currentQuestionIndex].status !== 'pending' || Math.abs(currentQuestionIndex - index) === 1) {
+      setCurrentQuestionIndex(index);
       setShowAnswer(progress[index].status !== 'pending');
     }
   };
@@ -321,9 +338,6 @@ const QuizPage = () => {
   };
 
   const currentQuestion = shuffledQuizData?.questions[currentQuestionIndex];
-  const correctAnswers = currentQuestion ? (Array.isArray(currentQuestion.answer)
-    ? currentQuestion.answer
-    : currentQuestion.answer.split(', ')) : [];
 
   const handleStartTutorial = () => {
     setShowWelcomePaper(false);
@@ -336,23 +350,34 @@ const QuizPage = () => {
     localStorage.setItem('hasSeenQuizWelcome', 'true');
   };
 
-  // Função para resetar o tutorial (para testes)
   const resetTutorial = () => {
     localStorage.setItem('hasSeenQuizWelcome', 'false');
     setShowWelcomePaper(true);
     setRunTutorial(false);
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
+  // Exibição de loading ou erro (usando os estados do contexto agora)
+  if (contextLoading || !shuffledQuizData) {
+    return (
+      <QuizWrapper>
+        <Header />
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Carregando quiz...</Typography>
+        </Box>
+      </QuizWrapper>
+    );
   }
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-
-  if (!shuffledQuizData || !currentQuestion) {
-    return <div>No quiz data available.</div>;
+  if (contextError) {
+    return (
+      <QuizWrapper>
+        <Header />
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+          <Typography variant="h6" color="error" sx={{ mb: 2 }}>Erro ao carregar o quiz: {contextError.message}</Typography>
+          <Button variant="contained" onClick={() => navigate('/')}>Voltar ao Início</Button>
+        </Box>
+      </QuizWrapper>
+    );
   }
 
   return (
@@ -360,7 +385,6 @@ const QuizPage = () => {
       {showConfetti && <Confetti />}
       <Header />
       
-      {/* Botão de teste - remover depois */}
       <Button
         onClick={resetTutorial}
         sx={{
@@ -370,9 +394,7 @@ const QuizPage = () => {
           zIndex: 10002,
           backgroundColor: '#5650F5',
           color: 'white',
-          '&:hover': {
-            backgroundColor: '#7A75F7',
-          },
+          '&:hover': { backgroundColor: '#7A75F7' },
         }}
       >
         Resetar Tutorial
@@ -385,57 +407,25 @@ const QuizPage = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.5 }}
-            style={{
-              position: 'fixed',
-              top: 20,
-              right: 20,
-              zIndex: 10001,
-            }}
+            style={{ position: 'fixed', top: 20, right: 20, zIndex: 10001 }}
           >
             <Paper
               elevation={3}
               sx={{
-                padding: 2,
-                maxWidth: 300,
+                padding: 2, maxWidth: 300,
                 background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
-                color: 'white',
-                borderRadius: 2,
+                color: 'white', borderRadius: 2,
               }}
             >
-              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Bem-vindo ao Quiz!
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Vamos te mostrar como usar o sistema de quiz para testar seus conhecimentos.
-              </Typography>
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>Bem-vindo ao Quiz!</Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>Vamos te mostrar como usar o sistema de quiz para testar seus conhecimentos.</Typography>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={handleSkipTutorial}
-                  sx={{
-                    color: 'white',
-                    borderColor: 'white',
-                    '&:hover': {
-                      borderColor: 'white',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    },
-                  }}
-                >
+                <Button variant="outlined" size="small" onClick={handleSkipTutorial}
+                  sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255, 255, 255, 0.1)' } }}>
                   Pular
                 </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={handleStartTutorial}
-                  sx={{
-                    backgroundColor: 'white',
-                    color: '#5650F5',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    },
-                  }}
-                >
+                <Button variant="contained" size="small" onClick={handleStartTutorial}
+                  sx={{ backgroundColor: 'white', color: '#5650F5', '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.9)' } }}>
                   Começar Tutorial
                 </Button>
               </Box>
@@ -451,12 +441,7 @@ const QuizPage = () => {
         showProgress
         showSkipButton
         callback={handleJoyrideCallback}
-        styles={{
-          options: {
-            primaryColor: '#1976d2',
-            zIndex: 10000,
-          }
-        }}
+        styles={{ options: { primaryColor: '#1976d2', zIndex: 10000 } }}
       />
       
       <QuestionCard>
@@ -474,7 +459,7 @@ const QuizPage = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, background: 'rgba(255, 255, 255, 0.1)', padding: '0.5rem 1rem', borderRadius: '1rem' }}>
             <TimerIcon sx={{ color: '#FFD700' }} />
             <Typography variant="h6">
-              {Math.floor(totalTime / 60)}:{(totalTime % 60).toString().padStart(2, '0')}
+              {formatSecondsToMMSS(uiTimerTotalSeconds)}
             </Typography>
           </Box>
         </Box>
@@ -491,21 +476,11 @@ const QuizPage = () => {
             padding: '8px',
             position: 'relative',
             display: 'block',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-              display: 'block',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'rgba(0, 0, 0, 0.1)',
-              borderRadius: '4px',
-              margin: '4px',
-            },
+            '&::-webkit-scrollbar': { width: '8px', display: 'block' },
+            '&::-webkit-scrollbar-track': { background: 'rgba(0, 0, 0, 0.1)', borderRadius: '4px', margin: '4px' },
             '&::-webkit-scrollbar-thumb': {
-              background: '#5650F5',
-              borderRadius: '4px',
-              '&:hover': {
-                background: '#7A75F7',
-              },
+              background: '#5650F5', borderRadius: '4px',
+              '&:hover': { background: '#7A75F7' },
             },
             msOverflowStyle: 'auto',
             scrollbarWidth: 'thin',
@@ -546,6 +521,7 @@ const QuizPage = () => {
           )}
         </BottomSection>
       </QuestionCard>
+      
       <ProgressDots className="progress-dots">
         {progress.map((p, index) => (
           <div
@@ -555,6 +531,7 @@ const QuizPage = () => {
           ></div>
         ))}
       </ProgressDots>
+
       <ButtonWrapper className="navigation-buttons">
         <NavigationButton
           onClick={() => handleDotClick(currentQuestionIndex - 1)}
@@ -591,31 +568,16 @@ const QuizPage = () => {
         </StyledDialogActions>
       </StyledDialog>
 
-      {/* Resultado do Quiz */}
-      {userQuizResponse && (
-        <StyledDialog open={resultDialogOpen} onClose={handleCloseResultDialog}>
-          <StyledDialogTitle>Resultado do Quiz</StyledDialogTitle>
-          <StyledDialogContent>
-            <Typography variant="h6" style={{ fontWeight: 'bold', color: userQuizResponse.score / shuffledQuizData.questions.length >= 0.7 ? 'green' : 'red' }}>
-              {userQuizResponse.score / shuffledQuizData.questions.length >= 0.7
-                ? `Parabéns! Você acertou ${userQuizResponse.score} de ${shuffledQuizData.questions.length} questões e passou de fase.`
-                : `Você acertou ${userQuizResponse.score} de ${shuffledQuizData.questions.length} questões. Tente novamente para passar de fase.`}
-            </Typography>
-            <Typography variant="body1" style={{ marginTop: '10px' }}>
-              Tempo total: {userQuizResponse.totalQuizTime.toFixed(2)} segundos
-            </Typography>
-          </StyledDialogContent>
-          <StyledDialogActions>
-            <NextQuestionButton onClick={handleBackToHome}>
-              Voltar para a tela inicial
-            </NextQuestionButton>
-            {userQuizResponse.score / shuffledQuizData.questions.length < 0.7 && (
-              <NextQuestionButton onClick={handleRestartQuiz}>
-                Reiniciar Quiz
-              </NextQuestionButton>
-            )}
-          </StyledDialogActions>
-        </StyledDialog>
+      {userQuizResponse && shuffledQuizData && (
+        <QuizResultModal
+          open={resultDialogOpen}
+          score={userQuizResponse.score}
+          totalQuestions={shuffledQuizData.questions.length}
+          totalTime={userQuizResponse.totalQuizTime} // Passa o tempo como está vindo do contexto (já em segundos)
+          onClose={handleCloseResultDialog}
+          onRestartQuiz={handleRestartQuiz}
+          onBackToHome={handleBackToHome}
+        />
       )}
     </QuizWrapper>
   );
