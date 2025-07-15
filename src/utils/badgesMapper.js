@@ -62,7 +62,7 @@ export const mapFlashcardBadges = (decks) =>
     return {
       id: deck.id,
       title: images.flashcards[phaseKey]?.title || deck.title, // Usa o título amigável, se disponível
-      unlocked: deck.score >= 70,
+      unlocked: deck.score >= 50,
       image: images.flashcards[phaseKey]?.image || null,
     };
   });
