@@ -73,7 +73,7 @@ export const mapQuizBadges = (quizzes) =>
     return {
       id: quiz.id,
       title: images.quizzes[phaseKey]?.title || quiz.title, // Usa o título amigável, se disponível
-      unlocked: quiz.score >= 70,
+      unlocked: quiz.score * 10 >= 70,
       image: images.quizzes[phaseKey]?.image || null,
     };
   });
