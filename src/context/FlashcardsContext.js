@@ -46,33 +46,36 @@ export const FlashcardsProvider = ({ children }) => {
 
   // Esta função agora serve para atualizar o estado local da sessão,
   // mas o payload completo para o backend será montado no `FlashcardsPage`.
-  // Ela é mais um "setter" de estado local para o FlashcardsPage controlar.
-  const updateCardMetrics = (deckId, cardMetric) => {
-    setCurrentSessionMetrics(prevMetrics => {
-      const existingDeckMetrics = prevMetrics[deckId] || { selectedCardsIds: [], cardMetrics: [] };
-      
-      // Adiciona o `cardId` ao array de IDs de cartões selecionados se ainda não estiver presente
-      if (!existingDeckMetrics.selectedCardsIds.includes(cardMetric.cardId)) {
-        existingDeckMetrics.selectedCardsIds.push(cardMetric.cardId);
-      }
+const updateCardMetrics = (deckId, cardMetric) => {
+  setCurrentSessionMetrics(prevMetrics => {
+    const existingDeckMetrics = prevMetrics[deckId] || { selectedCardsIds: [], cardMetrics: [] };
 
-      // Encontra o índice da métrica do cartão atual no array
-      const existingCardIndex = existingDeckMetrics.cardMetrics.findIndex(m => m.cardId === cardMetric.cardId);
-      
-      // Atualiza ou adiciona a métrica do card com os novos dados
-      if (existingCardIndex > -1) {
-        existingDeckMetrics.cardMetrics[existingCardIndex] = cardMetric;
-      } else {
-        existingDeckMetrics.cardMetrics.push(cardMetric);
-      }
+    // Adiciona o cardId ao array se ainda não estiver presente
+    if (!existingDeckMetrics.selectedCardsIds.includes(cardMetric.cardId)) {
+      existingDeckMetrics.selectedCardsIds.push(cardMetric.cardId);
+    }
 
-      // Retorna o novo estado com as métricas atualizadas para o deck
-      return {
-        ...prevMetrics,
-        [deckId]: existingDeckMetrics
-      };
-    });
-  };
+    const existingCardIndex = existingDeckMetrics.cardMetrics.findIndex(m => m.cardId === cardMetric.cardId);
+    const existingCardMetric = existingDeckMetrics.cardMetrics[existingCardIndex];
+
+    const mergedCardMetric = {
+      ...existingCardMetric,
+      ...cardMetric,
+      attempts: (existingCardMetric?.attempts || 0) + (cardMetric.attempts || 0)
+    };
+
+    if (existingCardIndex > -1) {
+      existingDeckMetrics.cardMetrics[existingCardIndex] = mergedCardMetric;
+    } else {
+      existingDeckMetrics.cardMetrics.push(mergedCardMetric);
+    }
+
+    return {
+      ...prevMetrics,
+      [deckId]: existingDeckMetrics
+    };
+  });
+};
 
   // Função para enviar a resposta final da sessão para o backend
   const submitResponse = async (finalResponse) => {
