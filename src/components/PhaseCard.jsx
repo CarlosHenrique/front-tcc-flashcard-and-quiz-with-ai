@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
+// Make sure 'css' is imported here ^
 import ReactPlayer from 'react-player';
 import { Card, Typography, Box, Tooltip, IconButton, CardContent, Button, Dialog, DialogContent, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { useQuiz } from '../context/QuizContext';
 import { useFlashcards } from '../context/FlashcardsContext';
 import { AccessTime } from '@mui/icons-material';
 
-// Estilos (mantidos os mesmos, pois não impactam a lógica)
+// Estilos (mantidos os mesmos, pois não impactam a lógica principal, apenas a ordem e cor)
 const StyledCard = styled(motion(Card))`
   width: 300px;
   height: 420px;
@@ -103,9 +104,55 @@ const ButtonsContainer = styled(Grid)`
   }
 `;
 
+// ========================================================================
+// REVISÃO: StyledButton com a nova lógica de cores
+// ========================================================================
 const StyledButton = styled(motion.div)`
   width: 100%;
   margin-bottom: 8px !important;
+
+  .MuiButton-root {
+    border-radius: 10px;
+    text-transform: none;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(86, 80, 245, 0.3); /* Mantém a sombra base azul */
+    transition: all 0.3s ease;
+
+    ${props => props.type === 'video' && css`
+      background: linear-gradient(45deg, #5650F5 30%, #7A75F7 90%); /* Cor do app para o vídeo */
+      color: white;
+      border: none;
+
+      &:hover {
+        background: linear-gradient(45deg, #4840e6 30%, #6965e7 90%);
+        box-shadow: 0 6px 15px rgba(86, 80, 245, 0.4);
+      }
+      &.Mui-disabled {
+        background: linear-gradient(45deg, #9e9e9e 30%, #bdbdbd 90%);
+        color: rgba(255, 255, 255, 0.6);
+        box-shadow: none;
+      }
+    `}
+
+    ${props => props.type !== 'video' && css`
+      background-color: white; /* Fundo branco para Flashcards e Quiz */
+      color: #5650F5; /* Texto na cor do app */
+      border: 2px solid #5650F5; /* Borda na cor do app */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Sombra mais suave */
+
+      &:hover {
+        background-color: #f0f2f7; /* Levemente cinza no hover */
+        border-color: #4840e6;
+        box-shadow: 0 4px 10px rgba(86, 80, 245, 0.2); /* Sombra mais pronunciada no hover */
+      }
+      &.Mui-disabled {
+        background-color: #f5f5f5;
+        color: rgba(0, 0, 0, 0.26);
+        border-color: rgba(0, 0, 0, 0.12);
+        box-shadow: none;
+      }
+    `}
+  }
 `;
 
 const StatusBadge = styled.div`
@@ -164,9 +211,6 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
   // Calcula o progresso do deck (simulado para demonstração)
   const progress = deck.progress || 0;
 
-  // REMOVIDO: A variável hasCompletedFlashcards baseada em pontuação >= 70
-  // const hasCompletedFlashcards = deck.score >= 70; // Esta linha será removida ou modificada
-
   // Função para navegar para o deck de flashcards
   const handleFlashcardsClick = () => {
     if (isLocked) {
@@ -187,12 +231,6 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
       alert('Não há quizzes disponíveis para esta fase.');
       return;
     }
-
-    // REMOVIDO: A verificação de hasCompletedFlashcards para liberar o quiz
-    // if (!hasCompletedFlashcards) {
-    //   alert('Complete os flashcards primeiro para desbloquear o quiz!');
-    //   return;
-    // }
 
     navigate(`/quiz/${deck.id}/${quizzes[0].id}`, {
       state: { deck, quiz: quizzes[0] }
@@ -252,13 +290,13 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
 
     if (diffHours <= 0) {
       reviewStatus = 'atrasado';
-      reviewLabel = '🔴 Revisão pendente';
+      reviewLabel = '🔴 Sugestão de Revisão'; 
     } else if (diffHours <= 2) {
       reviewStatus = 'proximo';
-      reviewLabel = '🟡 Revisar em breve';
+      reviewLabel = '🟡 Sugestão em breve'; 
     } else {
       reviewStatus = 'ok';
-      reviewLabel = `🟢 Revisar em ${formatBrazilianDateTime(reviewTime)}`;
+      reviewLabel = `🟢 Sugestão para ${formatBrazilianDateTime(reviewTime)}`; 
     }
   }
 
@@ -303,8 +341,36 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
 
           {isActive && (
             <ButtonsContainer container spacing={1}>
+              {/* Botão de Vídeo - Agora com a cor principal do app e texto branco */}
+              <Grid item xs={12}>
+                <Tooltip title={!deck.videoUrl ? "Vídeo não disponível" : "Assistir vídeo introdutório"}>
+                  <div style={{ width: '100%' }}>
+                    <StyledButton 
+                      type="video" /* Define o tipo para aplicar os estilos específicos */
+                      whileHover={deck.videoUrl ? { scale: 1.03 } : {}} 
+                      whileTap={deck.videoUrl ? { scale: 0.97 } : {}}
+                    >
+                      <Button
+                        variant="contained" 
+                        fullWidth
+                        onClick={handleVideoClick}
+                        disabled={!deck.videoUrl}
+                        startIcon={<VideoLibrary />}
+                        sx={{
+                          // Estilos são agora controlados pelo StyledButton com base no 'type'
+                        }}
+                      >
+                        Vídeo
+                      </Button>
+                    </StyledButton>
+                  </div>
+                </Tooltip>
+              </Grid>
+
+              {/* Botão de Flashcards - Invertido: fundo branco, texto e borda na cor do app */}
               <Grid item xs={12}>
                 <StyledButton
+                  type="flashcards" /* Define o tipo para aplicar os estilos específicos */
                   whileHover={!isLocked ? { scale: 1.03 } : {}}
                   whileTap={!isLocked ? { scale: 0.97 } : {}}
                 >
@@ -312,30 +378,18 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
                     isLocked
                       ? "Fase bloqueada"
                       : reviewTime
-                        ? `🧠 Próxima revisão: ${formatBrazilianDateTime(reviewTime)}`
+                        ? `🧠 Próxima sugestão de revisão: ${formatBrazilianDateTime(reviewTime)}` 
                         : "Acessar flashcards"
                   }>
                     <div style={{ width: '100%' }}>
                       <Button
-                        variant="contained"
+                        variant="contained" 
                         fullWidth
                         onClick={handleFlashcardsClick}
                         disabled={isLocked}
                         startIcon={<School />}
                         sx={{
-                          background: 'linear-gradient(45deg, #5650F5 30%, #7A75F7 90%)',
-                          color: 'white',
-                          borderRadius: '10px',
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          boxShadow: '0 4px 10px rgba(86, 80, 245, 0.3)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #4840e6 30%, #6965e7 90%)',
-                          },
-                          '&.Mui-disabled': {
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            background: 'linear-gradient(45deg, #9e9e9e 30%, #bdbdbd 90%)',
-                          }
+                          // Estilos são agora controlados pelo StyledButton com base no 'type'
                         }}
                       >
                         Flashcards
@@ -345,81 +399,32 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
                 </StyledButton>
               </Grid>
 
+              {/* Botão de Quiz - Invertido: fundo branco, texto e borda na cor do app */}
               <Grid item xs={12}>
                 <Tooltip title={
                   isLocked
                     ? "Fase bloqueada"
                     : !hasQuizzes
                       ? "Não há quizzes disponíveis"
-                      // REMOVIDO: Mensagem sobre completar flashcards
-                      // : !hasCompletedFlashcards
-                      //   ? "Complete os flashcards primeiro"
-                        : "Acessar quiz"
+                      : "Acessar quiz"
                 }>
                   <div style={{ width: '100%' }}>
                     <StyledButton
-                      // REMOVIDO: Condição hasCompletedFlashcards no whileHover
+                      type="quiz" /* Define o tipo para aplicar os estilos específicos */
                       whileHover={!isLocked && hasQuizzes ? { scale: 1.03 } : {}}
-                      // REMOVIDO: Condição hasCompletedFlashcards no whileTap
                       whileTap={!isLocked && hasQuizzes ? { scale: 0.97 } : {}}
                     >
                       <Button
-                        variant="outlined"
+                        variant="contained" 
                         fullWidth
                         onClick={handleQuizClick}
-                        // REMOVIDO: Condição !hasCompletedFlashcards no disabled
                         disabled={isLocked || !hasQuizzes}
                         startIcon={<QuestionAnswer />}
                         sx={{
-                          borderColor: '#5650F5',
-                          color: '#5650F5',
-                          borderRadius: '10px',
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          '&:hover': {
-                            borderColor: '#4840e6',
-                            backgroundColor: 'rgba(86, 80, 245, 0.05)',
-                          },
-                          '&.Mui-disabled': {
-                            borderColor: 'rgba(0, 0, 0, 0.12)',
-                            color: 'rgba(0, 0, 0, 0.26)',
-                          }
+                          // Estilos são agora controlados pelo StyledButton com base no 'type'
                         }}
                       >
                         Quiz
-                      </Button>
-                    </StyledButton>
-                  </div>
-                </Tooltip>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Tooltip title={!deck.videoUrl ? "Vídeo não disponível" : "Assistir vídeo introdutório"}>
-                  <div style={{ width: '100%' }}>
-                    <StyledButton whileHover={deck.videoUrl ? { scale: 1.03 } : {}} whileTap={deck.videoUrl ? { scale: 0.97 } : {}}>
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                        onClick={handleVideoClick}
-                        disabled={!deck.videoUrl}
-                        startIcon={<VideoLibrary />}
-                        sx={{
-                          borderColor: '#5650F5',
-                          color: '#5650F5',
-                          borderRadius: '10px',
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          '&:hover': {
-                            borderColor: '#4840e6',
-                            backgroundColor: 'rgba(86, 80, 245, 0.05)',
-                          },
-                          '&.Mui-disabled': {
-                            borderColor: 'rgba(0, 0, 0, 0.12)',
-                            color: 'rgba(0, 0, 0, 0.26)',
-                          }
-                        }}
-                      >
-                        Vídeo
                       </Button>
                     </StyledButton>
                   </div>
@@ -433,7 +438,7 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
         </CardContentWrapper>
       </StyledCard>
 
-      {/* Modal de Vídeo */}
+      {/* Modal de Vídeo (sem alterações) */}
       <Dialog
         open={openVideoModal}
         onClose={handleCloseVideo}
@@ -482,7 +487,7 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Informações */}
+      {/* Modal de Informações (sem alterações) */}
       <Dialog
         open={openInfoModal}
         onClose={handleCloseInfo}
@@ -520,13 +525,13 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
           </Typography>
 
           <Typography variant="h6" sx={{ color: '#5650F5', mt: 3, mb: 1 }}>
-            Requisitos para completar esta fase:
+            Sugestões para esta fase:
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
             <School color="primary" sx={{ mr: 1 }} />
             <Typography variant="body1">
-              Completar todos os flashcards
+              Considerar completar os flashcards
             </Typography>
           </Box>
 
@@ -534,7 +539,7 @@ const PhaseCard = ({ deck, quizzes, isActive, onClick, phaseNumber }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <QuestionAnswer color="primary" sx={{ mr: 1 }} />
               <Typography variant="body1">
-                Obter pelo menos 70% de acerto no quiz
+                Tentar obter 70% ou mais no quiz
               </Typography>
             </Box>
           )}
